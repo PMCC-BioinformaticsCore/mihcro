@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<jpackage-state version="21.0.4" platform="linux">
+  <app-version>0.6.0-rc3</app-version>
+  <main-launcher>QuPath</main-launcher>
+  <main-class>qupath.QuPath</main-class>
+  <signed>false</signed>
+  <app-store>false</app-store></jpackage-state>

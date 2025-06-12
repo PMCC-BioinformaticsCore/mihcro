@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/nf-core/microscopy/main/nextflow_schema.json",
     "title": "nf-core/microscopy pipeline parameters",
-    "description": "PMCC microscopy image processing",
+    "description": "PMCC microscopy pipeline",
     "type": "object",
     "$defs": {
         "input_output_options": {

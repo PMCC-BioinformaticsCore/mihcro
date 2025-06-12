@@ -1,0 +1,1 @@
+The full list of Bio-Formats dependencies and respective licenses is at https://docs.openmicroscopy.org/bio-formats/6.11.0/developers/java-library.html

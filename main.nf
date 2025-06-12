@@ -62,7 +62,7 @@ workflow {
         params.input
     )
 
-    //
+    
     // WORKFLOW: Run main workflow
     //
     NFCORE_MICROSCOPY (
