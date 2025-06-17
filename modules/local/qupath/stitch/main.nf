@@ -7,7 +7,7 @@ process QUPATH_STITCH {
     tuple val(meta), path(tifs)
 
     output:
-    tuple val(meta), path("*.ome.tif"), emit: tif
+    tuple val(meta), path("*.ome.tif"), emit: image
     path "versions.yml"           , emit: versions
 
     when:

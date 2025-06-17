@@ -14,6 +14,7 @@ include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main'
 include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'  
 include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
 
+include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main' 
 include { MCQUANT } from '../modules/nf-core/mcquant/main'                   
 include { SCIMAP_MCMICRO } from '../modules/nf-core/scimap/mcmicro/main' 
 
@@ -41,13 +42,13 @@ workflow MICROSCOPY {
 
     // Get DAPI channel
     BFTOOLS_TIFFMETAXML (
-        QUPATH_STITCH.out.tif
+        QUPATH_STITCH.out.image
     )
     ch_versions = ch_versions.mix(BFTOOLS_TIFFMETAXML.out.versions)
 
     EXTRACTIMAGECHANNEL (
         BFTOOLS_TIFFMETAXML.out.xml,
-        QUPATH_STITCH.out.tif
+        QUPATH_STITCH.out.image
     )
     ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
 
@@ -67,6 +68,11 @@ workflow MICROSCOPY {
     ch_versions = ch_versions.mix(CELLPOSE.out.versions)
 
     // Quantification
+    SEPARATEIMAGECHANNELS (
+        QUPATH_STITCH.out.image
+    )
+    ch_versions = ch_versions.mix(SEPARATEIMAGECHANNELS.out.versions)
+
     Channel.fromPath(params.markers)
         .map { it -> 
             [[id: 'markers'], it]
@@ -76,7 +82,7 @@ workflow MICROSCOPY {
 
     ch_segmentation = DEEPCELL_MESMER.out.mask
         .mix( CELLPOSE.out.mask )
-        .combine(ch_nuclear_image, by: 0)
+        .combine(SEPARATEIMAGECHANNELS.out.image, by: 0)
         .multiMap{ meta, mask, image ->
             image: [meta, image]
             mask: [meta, mask]

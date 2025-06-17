@@ -1,15 +1,16 @@
-process EXTRACTIMAGECHANNEL {
+// Converting dimension order required: https://github.com/labsyspharm/quantification/issues/41
+
+process SEPARATEIMAGECHANNELS {
     tag "$meta.id"
     label 'process_low'
 
-    container "docker://sli0001/xmltodict-skimage:0.0.1"
+    container "docker://mcmero/tifftools:python-3.12.5_aicsimageio_dask_tifffile_xmlschema--007280ae0ab35b3e"
 
     input:
-    tuple val(meta), path(xml)
     tuple val(meta), path(ome_tif)
-
+    
     output:
-    tuple val(meta), path("*.tif") , emit: image
+    tuple val(meta), path("*.tif"), emit: image
     path "versions.yml"           , emit: versions
 
     when:
@@ -19,20 +20,20 @@ process EXTRACTIMAGECHANNEL {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    extract_image_channel.py \\
+    convert_ome_tiff.py \\
         $args \\
-        --xml ${xml} \\
         --image ${ome_tif} \\
         --output ${prefix}.tif 
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')
-        extract_image_channel.py: \$(grep 'Version:'  extract_image_channel.py | cut -d ' ' -f 3)
+        convert_ome_tiff.py: \$(grep 'Version:'  convert_ome_tiff.py | cut -d ' ' -f 3)
     END_VERSIONS
     """
 
     stub:
+    def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     
@@ -41,7 +42,7 @@ process EXTRACTIMAGECHANNEL {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')
-        extract_image_channel.py: \$(grep 'Version:'  extract_image_channel.py | cut -d ' ' -f 3)
+        convert_ome_tiff.py: \$(grep 'Version:'  convert_ome_tiff.py | cut -d ' ' -f 3)
     END_VERSIONS
     """
 }
