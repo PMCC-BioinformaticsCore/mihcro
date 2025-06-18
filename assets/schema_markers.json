@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nf-core/microscopy/main/assets/schema_markers.json",
+    "title": "nf-core/microscopy pipeline - params.markers schema",
+    "description": "Schema for the file provided with params.markers",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "marker_name": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "errorMessage": "Marker name must be provided and cannot contain spaces",
+                "meta": ["marker_name"]
+            },
+            "channel_name": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "errorMessage": "Channel name must not contain spaces",
+                "meta": ["channel_name"]
+            },
+            "cycle_number": {
+                "type": "integer",
+                "meta": ["cycle_number"]
+            }
+        },
+        "required": ["marker_name"]
+    }
+}

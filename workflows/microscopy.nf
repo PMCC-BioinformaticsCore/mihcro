@@ -16,7 +16,7 @@ include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to s
 
 include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main' 
 include { MCQUANT } from '../modules/nf-core/mcquant/main'                   
-include { SCIMAP_MCMICRO } from '../modules/nf-core/scimap/mcmicro/main' 
+include { SCIMAP_MCMICRO } from '../modules/local/scimap/mcmicro/main' // custom module to get all output contents
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,6 +28,7 @@ workflow MICROSCOPY {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    ch_markers // channel: markers file [[id:markers], params.markers]
 
     main:
     ch_versions = Channel.empty()
@@ -53,44 +54,52 @@ workflow MICROSCOPY {
     ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
 
     // Segmentation - use only nuclear image
+    ch_segmentation = Channel.empty()
     ch_nuclear_image = EXTRACTIMAGECHANNEL.out.image
 
     DEEPCELL_MESMER (
         ch_nuclear_image,
         [[], []]
     )
+    DEEPCELL_MESMER.out.mask
+        .map { meta, it ->
+            return [meta.id, meta + [seg: 'mesmer'], it]
+        }
+        .set { ch_mesmer }
     ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
 
     CELLPOSE (
         ch_nuclear_image,
         []
     )
+    CELLPOSE.out.mask
+        .map { meta, it ->
+            return [meta.id, meta + [seg: 'cellpose'], it]
+        }
+        .set { ch_cellpose }
     ch_versions = ch_versions.mix(CELLPOSE.out.versions)
 
     // Quantification
     SEPARATEIMAGECHANNELS (
         QUPATH_STITCH.out.image
     )
+    ch_separatedimg = SEPARATEIMAGECHANNELS.out.image
+        .map { meta, it ->
+            [meta.id, meta, it]
+        }
     ch_versions = ch_versions.mix(SEPARATEIMAGECHANNELS.out.versions)
 
-    Channel.fromPath(params.markers)
-        .map { it -> 
-            [[id: 'markers'], it]
-        }
-        .collect()
-        .set { ch_markers }
-
-    ch_segmentation = DEEPCELL_MESMER.out.mask
-        .mix( CELLPOSE.out.mask )
-        .combine(SEPARATEIMAGECHANNELS.out.image, by: 0)
-        .multiMap{ meta, mask, image ->
-            image: [meta, image]
-            mask: [meta, mask]
+    ch_quant = ch_mesmer
+        .mix(ch_cellpose)
+        .combine( ch_separatedimg, by:0 ) 
+        .multiMap { meta1, meta2, seg, meta3, img -> 
+            image: [meta2, img]
+            mask: [meta2, seg]
         }
 
     MCQUANT (
-        ch_segmentation.image,
-        ch_segmentation.mask,
+        ch_quant.image,
+        ch_quant.mask,
         ch_markers
     )
     ch_versions = ch_versions.mix(MCQUANT.out.versions)

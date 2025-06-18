@@ -31,6 +31,7 @@ workflow NFCORE_MICROSCOPY {
 
     take:
     samplesheet // channel: samplesheet read in from --input
+    markers // channel: markers file [[id:markers], params.markers]
 
     main:
 
@@ -38,7 +39,8 @@ workflow NFCORE_MICROSCOPY {
     // WORKFLOW: Run pipeline
     //
     MICROSCOPY (
-        samplesheet
+        samplesheet,
+        markers
     )
 }
 /*
@@ -66,7 +68,8 @@ workflow {
     // WORKFLOW: Run main workflow
     //
     NFCORE_MICROSCOPY (
-        PIPELINE_INITIALISATION.out.samplesheet
+        PIPELINE_INITIALISATION.out.samplesheet,
+        PIPELINE_INITIALISATION.out.markers
     )
     //
     // SUBWORKFLOW: Run completion tasks

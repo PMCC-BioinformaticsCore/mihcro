@@ -73,18 +73,29 @@ workflow PIPELINE_INITIALISATION {
             meta, tifs ->
                 return [ meta, [ tifs ] ]
         }
-        // .groupTuple()
-        // .map { samplesheet ->
-        //     validateInputSamplesheet(samplesheet)
-        // }
-        // .map {
-        //     meta, fastqs ->
-        //         return [ meta, fastqs.flatten() ]
-        // }
         .set { ch_samplesheet }
+    
+    // 
+    // Check if markers file provided through params.markers is valid, and create channel from params.markers
+    // 
+    Channel
+        .fromList(samplesheetToList(params.markers, "${projectDir}/assets/schema_markers.json"))
+        .collect({ it[0] }, flat: false)
+        .map { it -> 
+            validateInputMarkers(it)
+        }
+
+    Channel
+        .fromPath(params.markers)
+        .map { it -> 
+            return [ [id: 'markers'], it]
+        }
+        .collect()
+        .set { ch_markers }
 
     emit:
     samplesheet = ch_samplesheet
+    markers     = ch_markers
     versions    = ch_versions
 }
 
@@ -139,6 +150,23 @@ workflow PIPELINE_COMPLETION {
     FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
+//
+// Validate channels from input marker sheet
+//
+def validateInputMarkers(markerdata) {
+
+    // Check that marker names are unique
+    def marker_name_list = []
+    markerdata.each { row ->
+        if (marker_name_list.contains(row.marker_name)) {
+            error("Duplicate marker names for: '${row.marker_name}' in marker sheet")
+        } else {
+            marker_name_list.add(row.marker_name)
+        }
+    }
+
+}
 
 //
 // Validate channels from input samplesheet

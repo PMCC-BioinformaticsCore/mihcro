@@ -9,8 +9,7 @@ process SCIMAP_MCMICRO {
     tuple val(meta), path(cellbyfeature)
 
     output:
-    tuple val(meta), path("*.csv")      , emit: csv     , optional:true
-    tuple val(meta), path("*.h5ad")     , emit: h5ad    , optional:true
+    tuple val(meta), path("scimap")     , emit: h5ad    , optional:true
     path "versions.yml"                 , emit: versions
 
     when:
@@ -28,7 +27,7 @@ process SCIMAP_MCMICRO {
     mkdir numba_cache_dir
     export NUMBA_CACHE_DIR='./numba_cache_dir'
 
-    scimap-mcmicro $cellbyfeature -o .
+    scimap-mcmicro $cellbyfeature -o ./${prefix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -45,8 +44,7 @@ process SCIMAP_MCMICRO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def VERSION='2.1.3' // WARN: Version information not provided by tool on CLI. Please update this string when bumping
     """
-    touch ${cellbyfeature.baseName}.h5ad.csv
-    touch ${cellbyfeature.baseName}.h5ad
+    touch ${prefix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
