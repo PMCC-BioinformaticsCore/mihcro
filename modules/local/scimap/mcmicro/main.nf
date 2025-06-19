@@ -9,7 +9,7 @@ process SCIMAP_MCMICRO {
     tuple val(meta), path(cellbyfeature)
 
     output:
-    tuple val(meta), path("scimap")     , emit: h5ad    , optional:true
+    tuple val(meta), path("scimap_*")     , emit: h5ad    , optional:true
     path "versions.yml"                 , emit: versions
 
     when:
@@ -27,7 +27,7 @@ process SCIMAP_MCMICRO {
     mkdir numba_cache_dir
     export NUMBA_CACHE_DIR='./numba_cache_dir'
 
-    scimap-mcmicro $cellbyfeature -o ./${prefix}
+    scimap-mcmicro $cellbyfeature -o ./scimap_${prefix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
