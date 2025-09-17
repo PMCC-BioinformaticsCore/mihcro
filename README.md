@@ -13,7 +13,7 @@ The purpose of the pipeline is to convert tiled or stitched multi-channel micros
 
 The segmentation model to be used can be selected (currently mesmer is default, and cellpose is also available). The pipeline returns a stitched image file, segmented image mask, cell x feature spreadsheet, as well as UMAP representations of the data clustered using various methods.
 
-![nf-core/microscopy metro diagram](assets/microscopy_metro.pdf)
+![nf-core/microscopy metro diagram](assets/microscopy_metro.png)
 
 ## Usage
 
