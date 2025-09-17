@@ -64,6 +64,11 @@ workflow PIPELINE_INITIALISATION {
     )
 
     //
+    // Validate segmentation parameter
+    //
+    validateSegmentationParams()
+
+    //
     // Create channel from input file provided through params.input
     //
 
@@ -74,20 +79,20 @@ workflow PIPELINE_INITIALISATION {
                 return [ meta, [ tifs ] ]
         }
         .set { ch_samplesheet }
-    
-    // 
+
+    //
     // Check if markers file provided through params.markers is valid, and create channel from params.markers
-    // 
+    //
     Channel
         .fromList(samplesheetToList(params.markers, "${projectDir}/assets/schema_markers.json"))
         .collect({ it[0] }, flat: false)
-        .map { it -> 
+        .map { it ->
             validateInputMarkers(it)
         }
 
     Channel
         .fromPath(params.markers)
-        .map { it -> 
+        .map { it ->
             return [ [id: 'markers'], it]
         }
         .collect()
@@ -150,6 +155,15 @@ workflow PIPELINE_COMPLETION {
     FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
+//
+// Validate segmentation parameter
+//
+def validateSegmentationParams() {
+    if (params.segmentation && !(params.segmentation in ['mesmer', 'cellpose'])) {
+        error("Invalid segmentation method: '${params.segmentation}'. Must be 'mesmer' or 'cellpose'")
+    }
+}
 
 //
 // Validate channels from input marker sheet

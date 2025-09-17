@@ -8,14 +8,14 @@ include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pi
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_microscopy_pipeline'
 
 include { QUPATH_STITCH } from '../modules/local/qupath/stitch/main'
-include { BFTOOLS_TIFFMETAXML } from '../modules/local/bftools/tiffmetaxml/main' 
-include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main' 
+include { BFTOOLS_TIFFMETAXML } from '../modules/local/bftools/tiffmetaxml/main'
+include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main'
 
-include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'  
+include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
 include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
 
-include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main' 
-include { MCQUANT } from '../modules/nf-core/mcquant/main'                   
+include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
+include { MCQUANT } from '../modules/nf-core/mcquant/main'
 include { SCIMAP_MCMICRO } from '../modules/local/scimap/mcmicro/main' // custom module to get all output contents
 
 /*
@@ -36,7 +36,7 @@ workflow MICROSCOPY {
     // Stitch images together
     stitch_script = "${projectDir}/bin/stitch.groovy"
     QUPATH_STITCH (
-        stitch_script, 
+        stitch_script,
         ch_samplesheet
     )
     ch_versions = ch_versions.mix(QUPATH_STITCH.out.versions)
@@ -54,30 +54,30 @@ workflow MICROSCOPY {
     ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
 
     // Segmentation - use only nuclear image
-    ch_segmentation = Channel.empty()
     ch_nuclear_image = EXTRACTIMAGECHANNEL.out.image
 
-    DEEPCELL_MESMER (
-        ch_nuclear_image,
-        [[], []]
-    )
-    DEEPCELL_MESMER.out.mask
-        .map { meta, it ->
-            return [meta.id, meta + [seg: 'mesmer'], it]
-        }
-        .set { ch_mesmer }
-    ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
+    if (params.segmentation == 'mesmer') {
+        DEEPCELL_MESMER (
+            ch_nuclear_image,
+            [[], []]
+        )
+        ch_segmentation = DEEPCELL_MESMER.out.mask
+            .map { meta, it ->
+                return [meta.id, meta + [seg: 'mesmer'], it]
+            }
+        ch_versions = ch_versions.mix(DEEPCELL_MESMER.out.versions)
 
-    CELLPOSE (
-        ch_nuclear_image,
-        []
-    )
-    CELLPOSE.out.mask
-        .map { meta, it ->
-            return [meta.id, meta + [seg: 'cellpose'], it]
-        }
-        .set { ch_cellpose }
-    ch_versions = ch_versions.mix(CELLPOSE.out.versions)
+    } else if (params.segmentation == 'cellpose') {
+        CELLPOSE (
+            ch_nuclear_image,
+            []
+        )
+        ch_segmentation = CELLPOSE.out.mask
+            .map { meta, it ->
+                return [meta.id, meta + [seg: 'cellpose'], it]
+            }
+        ch_versions = ch_versions.mix(CELLPOSE.out.versions)
+    }
 
     // Quantification
     SEPARATEIMAGECHANNELS (
@@ -89,10 +89,9 @@ workflow MICROSCOPY {
         }
     ch_versions = ch_versions.mix(SEPARATEIMAGECHANNELS.out.versions)
 
-    ch_quant = ch_mesmer
-        .mix(ch_cellpose)
-        .combine( ch_separatedimg, by:0 ) 
-        .multiMap { meta1, meta2, seg, meta3, img -> 
+    ch_quant = ch_segmentation
+        .combine( ch_separatedimg, by:0 )
+        .multiMap { meta1, meta2, seg, meta3, img ->
             image: [meta2, img]
             mask: [meta2, seg]
         }
