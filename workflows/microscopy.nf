@@ -9,6 +9,8 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_micr
 
 include { QUPATH_STITCH } from '../modules/local/qupath/stitch/main'
 include { BFTOOLS_TIFFMETAXML } from '../modules/local/bftools/tiffmetaxml/main'
+include { INDICA_TIFF_TO_OME } from '../modules/local/halo/indicatifftoome/main.nf'
+include { HANDLE_STITCHED } from '../modules/local/handlestitched/main'
 include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main'
 
 include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
@@ -33,23 +35,50 @@ workflow MICROSCOPY {
     main:
     ch_versions = Channel.empty()
 
-    // Stitch images together
+    // Branch input based on format
+    ch_samplesheet
+        .branch { meta, tiffs ->
+            tiles: meta.format == 'tiles'
+            stitched: meta.format == 'stitched'
+            fused: meta.format == 'fused'
+        }
+        .set { ch_branched }
+
+    // Process each format type
+
+    // Stitch tiled input
     stitch_script = "${projectDir}/bin/stitch.groovy"
     QUPATH_STITCH (
         stitch_script,
-        ch_samplesheet
+        ch_branched.tiles
     )
-    ch_versions = ch_versions.mix(QUPATH_STITCH.out.versions)
 
-    // Get DAPI channel
-    BFTOOLS_TIFFMETAXML (
-        QUPATH_STITCH.out.image
+    // Link to tiff from stitched input
+    HANDLE_STITCHED (
+        ch_branched.stitched
     )
+
+    // Process HALO fused input
+    INDICA_TIFF_TO_OME (
+        ch_branched.fused
+    )
+
+    // Combine all processed images
+    ch_images = QUPATH_STITCH.out.image
+        .mix(HANDLE_STITCHED.out.image)
+        .mix(INDICA_TIFF_TO_OME.out.image)
+
+    ch_versions = ch_versions.mix(QUPATH_STITCH.out.versions)
+    ch_versions = ch_versions.mix(HANDLE_STITCHED.out.versions)
+    ch_versions = ch_versions.mix(INDICA_TIFF_TO_OME.out.versions)
+
+    // Extract XML, DAPI channel
+    BFTOOLS_TIFFMETAXML(ch_images)
+
     ch_versions = ch_versions.mix(BFTOOLS_TIFFMETAXML.out.versions)
 
     EXTRACTIMAGECHANNEL (
-        BFTOOLS_TIFFMETAXML.out.xml,
-        QUPATH_STITCH.out.image
+        BFTOOLS_TIFFMETAXML.out.xml_tif
     )
     ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
 
@@ -81,7 +110,7 @@ workflow MICROSCOPY {
 
     // Quantification
     SEPARATEIMAGECHANNELS (
-        QUPATH_STITCH.out.image
+        ch_images
     )
     ch_separatedimg = SEPARATEIMAGECHANNELS.out.image
         .map { meta, it ->

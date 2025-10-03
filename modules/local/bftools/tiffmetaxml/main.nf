@@ -11,7 +11,7 @@ process BFTOOLS_TIFFMETAXML {
     tuple val(meta), path(tif)
 
     output:
-    tuple val(meta), path("*.xml"), emit: xml
+    tuple val(meta), path("*.xml"), path(tif), emit: xml_tif
     path "versions.yml"           , emit: versions
 
     when:
@@ -23,6 +23,8 @@ process BFTOOLS_TIFFMETAXML {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def BFTOOLS_VERSION='8.0.0' // Edit bftools versions manually
     """
+    export _JAVA_OPTIONS="-XX:-UsePerfData -Xlog:disable"
+
     tiffcomment \\
         $args \\
         $tif \\
@@ -41,7 +43,7 @@ process BFTOOLS_TIFFMETAXML {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def BFTOOLS_VERSION='8.0.0' // Edit bftools versions manually
     """
-    
+
     touch ${prefix}.xml
 
     cat <<-END_VERSIONS > versions.yml

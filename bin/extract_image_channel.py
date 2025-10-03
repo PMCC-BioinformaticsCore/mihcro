@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 # Written by Song Li & Patrick Crock
-# Version 0.0.2 - Fixed critical bugs
+# Version 0.0.3 - Made extraction robust to dimension order
 import sys, os
 import argparse
 import xml.etree.ElementTree as ET
 import skimage.io
+import tifffile
+import numpy as np
 
 def extract_channel(xml, channel_name):
     tree = ET.parse(xml)
@@ -25,18 +27,26 @@ def extract_channel(xml, channel_name):
     return None
 
 def save_channel_image(ch, img_path, out_path):
-    img = skimage.io.imread(img_path)
+    with tifffile.TiffFile(img_path) as tif:
+        arr = tif.asarray()
+        axes = tif.series[0].axes
+        print("Array shape:", arr.shape, "Axes:", axes)
 
-    # Ensure we have the right number of dimensions
-    if len(img.shape) < 3:
-        print(f"Error: Image has only {len(img.shape)} dimensions, expected at least 3")
+    if "C" in axes:
+        c_index = axes.index("C")
+    elif "S" in axes:
+        c_index = axes.index("S")
+    else:
+        raise RuntimeError(f"No channel axis in axes string {axes}")
+
+    # move channel axis to last for consistency
+    arr = np.moveaxis(arr, c_index, -1)
+
+    if ch >= arr.shape[-1]:
+        print(f"Error: Channel {ch} not found, image has {arr.shape[-1]} channels")
         sys.exit(os.EX_SOFTWARE)
 
-    if ch >= img.shape[2]:
-        print(f"Error: Channel {ch} not found, image has {img.shape[2]} channels")
-        sys.exit(os.EX_SOFTWARE)
-
-    channel = img[:, :, ch]  # Extract the correct channel
+    channel = arr[..., ch]
     skimage.io.imsave(out_path, channel)
 
 def main():

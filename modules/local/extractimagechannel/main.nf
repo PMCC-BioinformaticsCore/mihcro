@@ -5,8 +5,7 @@ process EXTRACTIMAGECHANNEL {
     container "docker://sli0001/xmltodict-skimage:0.0.1"
 
     input:
-    tuple val(meta), path(xml)
-    tuple val(meta), path(ome_tif)
+    tuple val(meta), path(xml), path(ome_tif)
 
     output:
     tuple val(meta), path("*.tif") , emit: image
@@ -23,7 +22,7 @@ process EXTRACTIMAGECHANNEL {
         $args \\
         --xml ${xml} \\
         --image ${ome_tif} \\
-        --output ${prefix}.tif 
+        --output ${prefix}.tif
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -35,7 +34,7 @@ process EXTRACTIMAGECHANNEL {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    
+
     touch ${prefix}.tif
 
     cat <<-END_VERSIONS > versions.yml
