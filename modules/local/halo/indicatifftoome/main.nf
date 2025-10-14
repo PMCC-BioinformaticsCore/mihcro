@@ -2,7 +2,7 @@ process INDICA_TIFF_TO_OME {
     tag "$meta.id"
     label 'process_low'
 
-    container "ghcr.io/patrickcrock/python-tiff:3.8"
+    container "ghcr.io/patrickcrock/python-tiff:3.8-zarr"
 
     input:
     tuple val(meta), path(indica_tif)
@@ -47,9 +47,9 @@ process INDICA_TIFF_TO_OME {
         --output ${prefix}.ome.tif
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
+"${task.process}":
         python: \$(python --version | sed 's/Python //g')
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -58,8 +58,8 @@ process INDICA_TIFF_TO_OME {
     touch ${prefix}.ome.tif
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
+"${task.process}":
         python: \$(python --version | sed 's/Python //g')
-    END_VERSIONS
+END_VERSIONS
     """
 }
