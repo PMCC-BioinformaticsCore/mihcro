@@ -31,6 +31,8 @@ def main():
             channel.attrib['name'] for channel in tree.iter('channel')
         ]
 
+        objective_value = float(tree.find('.//objective').attrib['value'])
+
         with TiffWriter(
             args.output, bigtiff=True, ome=True, byteorder=tif.byteorder
         ) as ome:
@@ -85,6 +87,11 @@ def main():
                         else:
                             subifds = None
                         resx, resy = page.get_resolution('micrometer')
+
+                        # Correct resolution by objective magnification
+                        resx = resx / objective_value
+                        resy = resy / objective_value
+
                         metadata = {
                             'axes': 'CYX',
                             'PhysicalSizeX': resx,
