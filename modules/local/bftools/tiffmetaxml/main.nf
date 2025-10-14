@@ -24,6 +24,7 @@ process BFTOOLS_TIFFMETAXML {
     def BFTOOLS_VERSION='8.0.0' // Edit bftools versions manually
     """
     export _JAVA_OPTIONS="-XX:-UsePerfData -Xlog:disable"
+    export BIOFORMATS_UPGRADE_CHECK=never
 
     tiffcomment \\
         $args \\
