@@ -32,6 +32,18 @@
                     "description": "Path to comma-separated file containing information about the markers in the experiment.",
                     "help_text": ""
                 },
+                "segmentation": {
+                    "type": "string",
+                    "description": "Segmentation method to use",
+                    "enum": ["mesmer", "cellpose"],
+                    "help_text": "Choose between mesmer or cellpose for cell segmentation"
+                },
+                "downscale_mode": {
+                    "type": "string",
+                    "default": "1um",
+                    "enum": ["1um", "none"],
+                    "description": "Downscaling mode for image processing"
+                  },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",

@@ -7,47 +7,52 @@
 
 ## Introduction
 
-**nf-core/microscopy** is a bioinformatics pipeline that ...
+**nf-core/microscopy** is a bioinformatics pipeline designed to streamline the analysis of multiplex immunohistochemsitry (mIHC) samples.
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+The purpose of the pipeline is to convert tiled or stitched multi-channel microscopy images into clean single-cell data. It takes as input a samplesheet, and an optional list of markers present on the panel. It stitches images together, performs cell segmentation on the DAPI channel, quantifies outputs into single-cell format and then runs a few basic clustering analyses.
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/guidelines/graphic_design/workflow_diagrams#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+The segmentation model to be used can be selected (currently mesmer is default, and cellpose is also available). The pipeline returns a stitched image file, segmented image mask, cell x feature spreadsheet, as well as UMAP representations of the data clustered using various methods.
+
+![nf-core/microscopy metro diagram](assets/microscopy_metro.png)
 
 ## Usage
 
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
-
-First, prepare a samplesheet with your input data that looks as follows:
+First, prepare a samplesheet that looks as follows:
 
 `samplesheet.csv`:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,tiffs
+SAMPLE_NAME,/path/to/tiff/directory
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Each row represents a directory which contains several .tiff tiles.
 
--->
+Next, you'll need to prepare a list of your markers:
+
+`markers.csv`:
+
+```csv
+marker_name
+DAPI
+PTPRC
+HMWCK
+CD3
+CD11c
+```
+
+Each row represents a different channel in your images. Note that marker names cannot contain spaces!
 
 Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
 nextflow run nf-core/microscopy \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
+   --markers markers.csv \
    --outdir <OUTDIR>
 ```
 
@@ -67,8 +72,8 @@ For more details about the output files and reports, please refer to the
 nf-core/microscopy was originally written by Song Li.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
+  * Patrick Crock
 
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 
 ## Contributions and Support
 
