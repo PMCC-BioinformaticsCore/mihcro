@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Written by Song Li
-# Version: 0.0.1
+# Written by Song Li & Patrick Crock
+# Version: 0.0.2 Changed default order to match upstream outputs.
 
 import argparse
 import tifffile
@@ -11,8 +11,8 @@ def main():
     parser = argparse.ArgumentParser(description="Extract channel from image")
     parser.add_argument("-o", "--output", type=str, required=True, help="Output .tif file for extracted channel")
     parser.add_argument("-i", "--image", type=str, required=True, help="Input .tif image")
-    parser.add_argument("--order", type=str, default='2,0,1', help="Transpose dimensions, assuming Y,X,C input dimension order")
-    
+    parser.add_argument("--order", type=str, default='0,1,2', help="Transpose dimensions, assuming X,Y,C input dimension order")
+
     args = parser.parse_args()
 
     img = tifffile.imread(args.image)

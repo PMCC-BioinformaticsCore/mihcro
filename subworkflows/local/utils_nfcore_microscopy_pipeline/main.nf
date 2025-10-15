@@ -69,6 +69,11 @@ workflow PIPELINE_INITIALISATION {
     validateSegmentationParams()
 
     //
+    // Validate downsampling parameters
+    //
+    validateDownscaleParams()
+
+    //
     // Create channel from input file provided through params.input
     //
 
@@ -163,6 +168,18 @@ def validateSegmentationParams() {
     if (params.segmentation && !(params.segmentation in ['mesmer', 'cellpose'])) {
         error("Invalid segmentation method: '${params.segmentation}'. Must be 'mesmer' or 'cellpose'")
     }
+}
+
+//
+// Validate downsampling parameters
+//
+def validateDownscaleParams() {
+
+    // downscale mode
+    if (params.downscale_mode && !(params.downscale_mode in ['1um', 'none'])) {
+        error("Invalid downsampling selection: '${params.downscale_mode}'. Must be '1um', or 'none'")
+    }
+
 }
 
 //

@@ -13,6 +13,8 @@ include { INDICA_TIFF_TO_OME } from '../modules/local/halo/indicatifftoome/main.
 include { HANDLE_STITCHED } from '../modules/local/handlestitched/main'
 include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main'
 
+include { DOWNSCALE_OME_TIFF } from '../modules/local/downscaletiff'
+
 include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
 include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
 
@@ -33,7 +35,6 @@ workflow MICROSCOPY {
     ch_markers // channel: markers file [[id:markers], params.markers]
 
     main:
-    ch_versions = Channel.empty()
 
     // Branch input based on format
     ch_samplesheet
@@ -64,16 +65,30 @@ workflow MICROSCOPY {
     )
 
     // Combine all processed images
-    ch_images = QUPATH_STITCH.out.image
+    ch_images = Channel.empty()
+        .mix(QUPATH_STITCH.out.image)
         .mix(HANDLE_STITCHED.out.image)
         .mix(INDICA_TIFF_TO_OME.out.image)
 
-    ch_versions = ch_versions.mix(QUPATH_STITCH.out.versions)
-    ch_versions = ch_versions.mix(HANDLE_STITCHED.out.versions)
-    ch_versions = ch_versions.mix(INDICA_TIFF_TO_OME.out.versions)
+    ch_versions = Channel.empty()
+        .mix(QUPATH_STITCH.out.versions)
+        .mix(HANDLE_STITCHED.out.versions)
+        .mix(INDICA_TIFF_TO_OME.out.versions)
 
-    // Extract XML, DAPI channel
-    BFTOOLS_TIFFMETAXML(ch_images)
+
+    // Conditional downscaling based on parameter
+    if (params.downscale_mode == '1um') {
+        DOWNSCALE_OME_TIFF(
+            ch_images
+        )
+        ch_processed_images = DOWNSCALE_OME_TIFF.out.downscaled
+        ch_versions = ch_versions.mix(DOWNSCALE_OME_TIFF.out.versions)
+    } else {
+        ch_processed_images = ch_images
+    }
+
+    // Extract XML, DAPI channel from processed images
+    BFTOOLS_TIFFMETAXML(ch_processed_images)
 
     ch_versions = ch_versions.mix(BFTOOLS_TIFFMETAXML.out.versions)
 
@@ -110,7 +125,7 @@ workflow MICROSCOPY {
 
     // Quantification
     SEPARATEIMAGECHANNELS (
-        ch_images
+        ch_processed_images
     )
     ch_separatedimg = SEPARATEIMAGECHANNELS.out.image
         .map { meta, it ->
