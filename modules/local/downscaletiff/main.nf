@@ -1,6 +1,6 @@
 process DOWNSCALE_OME_TIFF {
     tag "$meta.id"
-    label 'process_high_memory'
+    label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
     container "ghcr.io/patrickcrock/bftools_tifffile:latest"
