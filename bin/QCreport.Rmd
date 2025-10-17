@@ -309,7 +309,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -354,7 +354,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -400,7 +400,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -446,7 +446,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -492,7 +492,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -538,7 +538,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 #df_plot=seu_mesmer[[]]
@@ -585,7 +585,7 @@ centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid,
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
 ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) + scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 # df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
 # df_plot=seu_mesmer[[]]
