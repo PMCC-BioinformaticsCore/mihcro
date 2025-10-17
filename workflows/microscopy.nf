@@ -22,6 +22,7 @@ include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/m
 include { MCQUANT } from '../modules/nf-core/mcquant/main'
 
 include { RENDER_REPORT } from '../modules/local/qcreportR/main'
+include { RENDER_SEGMENTATION } from '../modules/local/renderseg/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,6 +148,13 @@ workflow MICROSCOPY {
         ch_markers
     )
     ch_versions = ch_versions.mix(MCQUANT.out.versions)
+
+    RENDER_SEGMENTATION (
+        ch_nuclear_image,
+        ch_quant.mask
+    )
+
+    ch_versions = ch_versions.mix(RENDER_SEGMENTATION.out.versions)
 
     RENDER_REPORT (
         MCQUANT.out.csv,
