@@ -20,7 +20,8 @@ include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to s
 
 include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
 include { MCQUANT } from '../modules/nf-core/mcquant/main'
-include { SCIMAP_MCMICRO } from '../modules/local/scimap/mcmicro/main' // custom module to get all output contents
+
+include { RENDER_REPORT } from '../modules/local/qcreportR/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,10 +148,13 @@ workflow MICROSCOPY {
     )
     ch_versions = ch_versions.mix(MCQUANT.out.versions)
 
-    SCIMAP_MCMICRO {
-        MCQUANT.out.csv
-    }
-    ch_versions = ch_versions.mix(SCIMAP_MCMICRO.out.versions)
+    RENDER_REPORT (
+        MCQUANT.out.csv,
+        ch_markers,
+        file("${projectDir}/bin/QCreport.Rmd")
+    )
+
+    ch_versions = ch_versions.mix(RENDER_REPORT.out.versions)
 
     //
     // Collate and save software versions
