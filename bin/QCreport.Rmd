@@ -52,12 +52,88 @@ flag <- mesmer_marker %>% group_by(CellID) %>% filter(sum(Value)>1e+30) %>% pull
 
 if (length(flag)>0) {
   warning("Certain 'cells' appear to have unrealistically high intensities and will be removed.\nProblematic rows:")
-  mesmer_data %>% filter(CellID %in% flag)
+  print(mesmer_data %>% filter(CellID %in% flag))
   mesmer_data <- mesmer_data %>% filter(!CellID %in% flag)
   mesmer_marker <- mesmer_marker %>% filter(!CellID %in% flag)
 }
 ```
 
+# morphology {.tabset}
+## statistic table
+```{r}
+Morphology_mesmer <- mesmer_data[, c("Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent", "Orientation")]
+
+area_summary <- Morphology_mesmer %>%
+  summarise(
+    Detecter = "Mesmer",
+    Mean = round(mean(Area),2),
+    Median = median(Area),
+    SD = round(sd(Area),2),
+    Min = min(Area),
+    Max = max(Area)
+  )
+
+area_summary %>%
+  kbl(caption = "Area Statistical Table") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+## Cell area distribution
+```{r}
+Morphology_mesmer$Detecter   <- "Mesmer"
+
+ggplot(Morphology_mesmer, aes(x = Area, fill = Detecter)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  facet_wrap(~Detecter, scales = "free", ncol = 2) +
+  labs(
+    title = "Area Distribution",
+    x = "Area (µm²)",
+    y = "Density"
+  )
+
+
+```
+
+## Eccentricity distribution  
+```{r}
+ggplot(Morphology_mesmer, aes(x = Eccentricity, fill = Detecter)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  facet_wrap(~Detecter, scales = "free", ncol = 2) +
+  labs(
+    title = "Eccentricity Distribution",
+    x = "Eccentricity (µm²)",
+    y = "Density"
+  )
+```
+
+## Solidity distribution  
+```{r}
+ggplot(Morphology_mesmer, aes(x = Solidity, fill = Detecter)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  facet_wrap(~Detecter, scales = "free", ncol = 2) +
+  labs(
+    title = "Solidity Distribution",
+    x = "Solidity (µm²)",
+    y = "Density"
+  )
+```
+
+## Extent distribution  
+```{r}
+ggplot(Morphology_mesmer, aes(x = Extent, fill = Detecter)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  facet_wrap(~Detecter, scales = "free", ncol = 2) +
+  labs(
+    title = "Extent Distribution",
+    x = "Extent (µm²)",
+    y = "Density"
+  )
+```
+  
 # descriptive statistics {.tabset}
 ## raw
 ```{r, echo=FALSE}
