@@ -3,7 +3,7 @@ process RENDER_SEGMENTATION {
     label 'process_low'
     publishDir "${params.outdir}/images", pattern: "*_boundaries.tiff", mode: 'copy'
 
-    container "docker://sli0001/xmltodict-skimage:0.0.1"
+    container "ghcr.io/patrickcrock/mihcro_python:1.0"
 
     input:
     tuple val(meta), path(dapi_image)

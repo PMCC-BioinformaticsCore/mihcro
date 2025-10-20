@@ -2,7 +2,7 @@ process EXTRACTIMAGECHANNEL {
     tag "$meta.id"
     label 'process_low'
 
-    container "docker://sli0001/xmltodict-skimage:0.0.1"
+    container "ghcr.io/patrickcrock/mihcro_python:1.0"
 
     input:
     tuple val(meta), path(xml), path(ome_tif)
