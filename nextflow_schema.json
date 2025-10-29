@@ -42,7 +42,7 @@
                     "type": "string",
                     "default": "1um",
                     "enum": ["1um", "none"],
-                    "description": "Downscaling mode for image processing"
+                    "description": "Downscaling mode for image processing. '1um' for downscaling of image to 1 pixel/1um (recommended), 'none' for no downscaling."
                   },
                 "outdir": {
                     "type": "string",
@@ -56,6 +56,41 @@
                     "fa_icon": "fas fa-envelope",
                     "help_text": "Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every run.",
                     "pattern": "^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})$"
+                }
+            }
+        },
+        "dapi_background_removal": {
+            "title": "DAPI Background Removal Options",
+            "type": "object",
+            "description": "Parameters for optional DAPI background removal and Otsu thresholding",
+            "required": [
+                "dapi_bg_method"
+            ],
+            "properties": {
+                "dapi_bg_method": {
+                    "type": "string",
+                    "default": "none",
+                    "enum": ["none", "otsu_only", "gaussian", "rollingball", "af", "mean"],
+                    "description": "Background removal method. 'none' skips this step entirely, 'otsu_only' applies only Otsu thresholding without background removal. Background removal options are 'gaussian', 'rollingball', 'af', and 'mean'. "
+                },
+                "dapi_bg_sigma": {
+                    "type": "number",
+                    "description": "Sigma parameter for Gaussian background removal method"
+                },
+                "dapi_bg_radius": {
+                    "type": "integer",
+                    "description": "Radius parameter for rolling ball background removal method"
+                },
+                "dapi_otsu_leniency": {
+                    "type": "number",
+                    "default": 0.0,
+                    "minimum": -1.0,
+                    "maximum": 1.0,
+                    "description": "Threshold adjustment factor. Positive = more lenient (lower threshold), negative = stricter (higher threshold)."
+                },
+                "af_channel" : {
+                    "type": "string",
+                    "description": "Name of the autofluorescence channel in your image to be used with 'af' background removal mode."
                 }
             }
         },
