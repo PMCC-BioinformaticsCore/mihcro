@@ -67,7 +67,7 @@ The last required output for the pipeline is the `--outdir` parameter, which is 
 The following parameters are optional -- they either have defaults built-in, or refer to optional steps in the pipeline.
 
 <details>
-<summary>#### Segmentation</summary>
+<summary><h4>Segmentation</h4></summary>
 
 The pipeline, by default, runs Mesmer for segmentation. However, there is also the option to run Cellpose for segmentation, instead.
 - `--segmentation` (string, default: `mesmer`): Cell segmentation method. Options:
@@ -77,7 +77,7 @@ The pipeline, by default, runs Mesmer for segmentation. However, there is also t
 </details>
 
 <details>
-<summary>#### Downscaling</summary>
+<summary><h4>Downscaling</h4></summary>
 
 In order to reduce runtime for segmentation in large files, downscaling the resolution of your OME-TIFF file to 1µm per pixel is recommended. This also regularises the resolution across multiple-sample runs, which can change depending on file format or pre-processing done outside the pipeline.
 - `--downscale_mode` (string, default: `1um`): Image downscaling mode. Options:
@@ -87,7 +87,7 @@ In order to reduce runtime for segmentation in large files, downscaling the reso
 </details>
 
 <details>
-<summary>#### Background Correction</summary>
+<summary><h4>Background Correction</h4></summary>
 
 DAPI preprocessing is the other key optional step in the pipeline. This is designed to make segmentation faster and more effective. There are two main parts to this step:
 * Binarising the DAPI channel via Otsu thresholding
