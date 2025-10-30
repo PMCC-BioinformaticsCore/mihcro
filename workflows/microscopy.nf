@@ -11,7 +11,8 @@ include { QUPATH_STITCH } from '../modules/local/qupath/stitch/main'
 include { BFTOOLS_TIFFMETAXML } from '../modules/local/bftools/tiffmetaxml/main'
 include { INDICA_TIFF_TO_OME } from '../modules/local/halo/indicatifftoome/main.nf'
 include { HANDLE_STITCHED } from '../modules/local/handlestitched/main'
-include { EXTRACTIMAGECHANNEL } from '../modules/local/extractimagechannel/main'
+include { EXTRACTIMAGECHANNEL as EXTRACT_DAPI } from '../modules/local/extractimagechannel/main'
+include { EXTRACTIMAGECHANNEL as EXTRACT_AF } from '../modules/local/extractimagechannel/main'
 
 include { DOWNSCALE_OME_TIFF } from '../modules/local/downscaletiff'
 
@@ -20,7 +21,10 @@ include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to s
 
 include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
 include { MCQUANT } from '../modules/nf-core/mcquant/main'
-include { SCIMAP_MCMICRO } from '../modules/local/scimap/mcmicro/main' // custom module to get all output contents
+
+include { RENDER_REPORT } from '../modules/local/qcreportR/main'
+include { RENDER_SEGMENTATION } from '../modules/local/renderseg/main'
+include { DAPI_BACKGROUND_REMOVAL } from '../modules/local/bgremoval/main.nf'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,13 +96,35 @@ workflow MICROSCOPY {
 
     ch_versions = ch_versions.mix(BFTOOLS_TIFFMETAXML.out.versions)
 
-    EXTRACTIMAGECHANNEL (
+    EXTRACT_DAPI (
         BFTOOLS_TIFFMETAXML.out.xml_tif
     )
-    ch_versions = ch_versions.mix(EXTRACTIMAGECHANNEL.out.versions)
+    ch_versions = ch_versions.mix(EXTRACT_DAPI.out.versions)
+
+    // Background removal and otsu thresholding, if requested
+    if (params.dapi_bg_method != "none") {
+        if (params.dapi_bg_method == "af") {
+            // Extract both DAPI and AF channels
+            ch_dapi = EXTRACT_DAPI.out.image
+            ch_af = EXTRACT_AF(BFTOOLS_TIFFMETAXML.out.xml_tif).image
+
+            // Join DAPI and AF by meta.id, then pass to background removal
+            ch_bg_input = ch_dapi.join(ch_af, by: 0)
+            DAPI_BACKGROUND_REMOVAL(ch_bg_input)
+        } else {
+            // No AF channel needed - add empty placeholder
+            ch_bg_input = EXTRACT_DAPI.out.image.map { meta, dapi ->
+                [meta, dapi, []]
+            }
+            DAPI_BACKGROUND_REMOVAL(ch_bg_input)
+        }
+        ch_nuclear_image = DAPI_BACKGROUND_REMOVAL.out.processed_image
+        ch_versions = ch_versions.mix(DAPI_BACKGROUND_REMOVAL.out.versions)
+    } else {
+        ch_nuclear_image = EXTRACT_DAPI.out.image
+    }
 
     // Segmentation - use only nuclear image
-    ch_nuclear_image = EXTRACTIMAGECHANNEL.out.image
 
     if (params.segmentation == 'mesmer') {
         DEEPCELL_MESMER (
@@ -147,10 +173,20 @@ workflow MICROSCOPY {
     )
     ch_versions = ch_versions.mix(MCQUANT.out.versions)
 
-    SCIMAP_MCMICRO {
-        MCQUANT.out.csv
-    }
-    ch_versions = ch_versions.mix(SCIMAP_MCMICRO.out.versions)
+    RENDER_SEGMENTATION (
+        ch_nuclear_image,
+        ch_quant.mask
+    )
+
+    ch_versions = ch_versions.mix(RENDER_SEGMENTATION.out.versions)
+
+    RENDER_REPORT (
+        MCQUANT.out.csv,
+        ch_markers,
+        file("${projectDir}/bin/QCreport.Rmd")
+    )
+
+    ch_versions = ch_versions.mix(RENDER_REPORT.out.versions)
 
     //
     // Collate and save software versions

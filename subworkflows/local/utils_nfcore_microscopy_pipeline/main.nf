@@ -74,6 +74,11 @@ workflow PIPELINE_INITIALISATION {
     validateDownscaleParams()
 
     //
+    // Validate DAPI background removal parameters
+    //
+    validateDAPIbgParams()
+
+    //
     // Create channel from input file provided through params.input
     //
 
@@ -180,6 +185,33 @@ def validateDownscaleParams() {
         error("Invalid downsampling selection: '${params.downscale_mode}'. Must be '1um', or 'none'")
     }
 
+}
+
+//
+// Validate DAPI background removal parameters
+//
+def validateDAPIbgParams() {
+    def valid_methods = ['none', 'otsu_only', 'gaussian', 'rollingball', 'af', 'mean']
+
+    if (!(params.dapi_bg_method in valid_methods)) {
+        error("Invalid dapi_bg_method: '${params.dapi_bg_method}'. Must be one of: ${valid_methods.join(', ')}")
+    }
+
+    if (params.dapi_bg_method == 'gaussian' && !params.dapi_bg_sigma) {
+        error("--dapi_bg_sigma is required when using dapi_bg_method='gaussian'")
+    }
+
+    if (params.dapi_bg_method == 'rollingball' && !params.dapi_bg_radius) {
+        error("--dapi_bg_radius is required when using dapi_bg_method='rollingball'")
+    }
+
+    if (params.dapi_bg_method == 'af' && !params.af_channel) {
+        error("--af_channel is required when using dapi_bg_method='af'")
+    }
+
+    if (params.dapi_otsu_leniency < -1.0 || params.dapi_otsu_leniency > 1.0) {
+        error("--dapi_otsu_leniency must be between -1.0 and 1.0, got: ${params.dapi_otsu_leniency}")
+    }
 }
 
 //

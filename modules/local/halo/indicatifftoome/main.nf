@@ -2,7 +2,7 @@ process INDICA_TIFF_TO_OME {
     tag "$meta.id"
     label 'process_low'
 
-    container "ghcr.io/patrickcrock/python-tiff:3.8-zarr"
+    container "ghcr.io/patrickcrock/mihcro_python:1.0"
 
     input:
     tuple val(meta), path(indica_tif)

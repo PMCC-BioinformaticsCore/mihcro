@@ -1,2 +1,2 @@
-sample,tiffs
-SAMPLE_NAME,/path/to/tiff/file/folder
+sample,tiffs,format
+SAMPLE_NAME,/path/to/tiff/directory,tiles
