@@ -1,63 +1,146 @@
 # nf-core/microscopy: Usage
 
-## :warning: Please read this documentation on the nf-core website: [https://nf-co.re/microscopy/usage](https://nf-co.re/microscopy/usage)
-
-> _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
-
 ## Introduction
 
 <!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
 
-## Samplesheet input
+## Inputs
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below.
+### Samplesheet
+
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below. The samplesheet file should be called with the `--input` parameter, like so:
 
 ```bash
 --input '[path to samplesheet file]'
 ```
 
-### Multiple runs of the same sample
-
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes:
-
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz
-```
-
-### Full samplesheet
-
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
-
-A final samplesheet file consisting of both single- and paired-end data may look something like the one below. This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
-
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
-CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz
-TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,
-TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
-```
-
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
+```csv
+sample,tiffs,format
+SAMPLE_NAME,/path/to/tiff/directory,tiles
+```
+
+There are three columns to consider when creating your samplesheet:
+* The `sample` column holds the names of your samples
+* The `tiffs` column holds paths pointing to your files. This can be a directory containing multiple tiles, or a path direct to a .tiff or .ome.tiff file which has already been stitched.
+* The `format` column, likewise, refers to what format your files are in and relates directly to the `tiff` column. `format` can be one of:
+  * `tiles` for tiled inputs
+  * `stitched` for pre-stitched, ome-tiff inputs
+  * `fused` for legacy HALO outputs (indica-format tiff files)
+
+Each row of the samplesheet will be run through the pipeline separately. All rows do not need to follow the same format.
+
+### Markerfile
+
+Currently, this pipeline is designed to be run on samples which have been analysed with the same set of markers. The pipeline requires the input of the markers used in the panel, called with the `--markers` parameter, like so:
+
+```bash
+--markers '[path to markerfile]'
+```
+
+The markerfile format is very simple, with each row representing a different channel in your images:
+
+```csv title="markerfile.csv"
+marker_name
+DAPI
+CD14
+HMWCK
+CD3
+CD11c
+CD4
+CD8
+Autofluorescence
+```
+
+Markers do not need to be listed in any specific order. Note that marker names cannot contain spaces at this time.
+
+### Output directory
+
+The last required output for the pipeline is the `--outdir` parameter, which is simply a path to the directory where you want pipeline outputs to be stored. It is called like this:
+
+```bash
+--outdir '[path to output directory]'
+```
+
+### Optional pipeline parameters
+The following parameters are optional -- they either have defaults built-in, or refer to optional steps in the pipeline.
+
+<details>
+<summary>#### Segmentation</summary>
+
+The pipeline, by default, runs Mesmer for segmentation. However, there is also the option to run Cellpose for segmentation, instead.
+- `--segmentation` (string, default: `mesmer`): Cell segmentation method. Options:
+  - `mesmer`
+  - `cellpose`
+
+</details>
+
+<details>
+<summary>#### Downscaling</summary>
+
+In order to reduce runtime for segmentation in large files, downscaling the resolution of your OME-TIFF file to 1µm per pixel is recommended. This also regularises the resolution across multiple-sample runs, which can change depending on file format or pre-processing done outside the pipeline.
+- `--downscale_mode` (string, default: `1um`): Image downscaling mode. Options:
+  - `1um`: Downscale to 1 pixel per 1 µm (recommended)
+  - `none`: No downscaling
+
+</details>
+
+<details>
+<summary>#### Background Correction</summary>
+
+DAPI preprocessing is the other key optional step in the pipeline. This is designed to make segmentation faster and more effective. There are two main parts to this step:
+* Binarising the DAPI channel via Otsu thresholding
+  * The threshold derived from the Otsu method can be further tweaked using the `--dapi-otsu_leniency` parameter
+* Removing background DAPI signal prior to binarisation
+  * There are several options for background removal (see below)
+  * There is also the option to subtract an autofluorescence channel defined by the user from the DAPI signal
+
+An overview of the options available for this step:
+
+**Method selection:**
+- `--dapi_bg_method` (string, default: `none`): Background removal method. Options:
+  - `none`: Skip background removal and Otsu thresholding entirely
+  - `otsu_only`: Apply only Otsu thresholding without background removal
+  - `gaussian`: Gaussian-based background removal
+  - `rollingball`: Rolling ball background removal
+  - `mean`: Mean-based background removal
+  - `af`: Autofluorescence subtraction from the DAPI channel
+
+**Method-specific parameters:**
+- `--dapi_bg_sigma` (number, default: `50`): Sigma parameter for `gaussian` method.
+- `--dapi_bg_radius` (integer, default: `50`): Radius parameter for `rollingball` method.
+- `--af_channel` (string): Name of the autofluorescence channel (present in your `markerfile`) for `af` method.
+
+**Threshold adjustment:**
+- `--dapi_otsu_leniency` (number, default: `0.0`, range: `-1.0` to `1.0`): Otsu threshold adjustment factor.
+  - Positive values result in a more lenient (lower) threshold from the Otsu step.
+  - Negative values result in a stricter (higher) threshold from the Otsu step.
+
+An example usage for background correction is below:
+```bash
+--dapi_bg_method 'gaussian' --dapi_bg_sigma 30 --dapi_otsu_leniency 0.5
+```
+
+</details>
+
+
 ## Running the pipeline
+
+As this pipeline is not yet on nf-core, you will need to clone it directly into your directory prior to running:
+
+```bash
+git clone PMCC-BioinformaticsCore/microscopy
+```
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/microscopy --input ./samplesheet.csv --outdir ./results  -profile docker
+nextflow run microscopy \
+  --input ./samplesheet.csv \
+  --markers ./markerfile.csv \
+  --outdir ./results \
+  -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
@@ -88,6 +171,7 @@ with:
 
 ```yaml title="params.yaml"
 input: './samplesheet.csv'
+markers: './markerfile.csv'
 outdir: './results/'
 <...>
 ```
@@ -96,19 +180,19 @@ You can also generate such `YAML`/`JSON` files via [nf-core/launch](https://nf-c
 
 ### Updating the pipeline
 
-When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. When running the pipeline after this, it will always use the cached version if available - even if the pipeline has been updated since. To make sure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
+To make sure that you're running the latest version of the pipeline, make sure that you regularly update the version of the pipeline you have cloned:
 
 ```bash
-nextflow pull nf-core/microscopy
+git clone PMCC-BioinformaticsCore/microscopy
 ```
 
 ### Reproducibility
 
 It is a good idea to specify the pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
 
-First, go to the [nf-core/microscopy releases page](https://github.com/nf-core/microscopy/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
+<!-- First, go to the [nf-core/microscopy releases page](https://github.com/nf-core/microscopy/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
 
-This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future.
+This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. -->
 
 To further assist in reproducibility, you can use share and reuse [parameter files](#running-the-pipeline) to repeat pipeline runs with the same settings without having to write out a command with every single parameter.
 
@@ -127,7 +211,8 @@ Use this parameter to choose a configuration profile. Profiles can give configur
 Several generic profiles are bundled with the pipeline which instruct the pipeline to use software packaged using different methods (Docker, Singularity, Podman, Shifter, Charliecloud, Apptainer, Conda) - see below.
 
 > [!IMPORTANT]
-> We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
+> We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility. At this time, Conda is not supported for this pipeline.
+<!-- , however when this is not possible, Conda is also supported. -->
 
 The pipeline also dynamically loads configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when it runs, making multiple config profiles for various institutional clusters available at run time. For more information and to check if your system is supported, please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
 
