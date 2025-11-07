@@ -151,7 +151,8 @@ workflow MICROSCOPY {
 
     // Quantification
     SEPARATEIMAGECHANNELS (
-        ch_processed_images
+        ch_processed_images,
+        ch_markers
     )
     ch_separatedimg = SEPARATEIMAGECHANNELS.out.image
         .map { meta, it ->

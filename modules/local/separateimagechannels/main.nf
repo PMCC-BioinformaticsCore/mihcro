@@ -4,11 +4,12 @@ process SEPARATEIMAGECHANNELS {
     tag "$meta.id"
     label 'process_low'
 
-    container "docker://mcmero/tifftools:python-3.12.5_aicsimageio_dask_tifffile_xmlschema--007280ae0ab35b3e"
+    container "ghcr.io/patrickcrock/mihcro_python:1.0"
 
     input:
     tuple val(meta), path(ome_tif)
-    
+    tuple val(meta2), path(markerfile)
+
     output:
     tuple val(meta), path("*.tif"), emit: image
     path "versions.yml"           , emit: versions
@@ -23,7 +24,8 @@ process SEPARATEIMAGECHANNELS {
     convert_ome_tiff.py \\
         $args \\
         --image ${ome_tif} \\
-        --output ${prefix}.tif 
+        --output ${prefix}.tif \\
+        --markers ${markerfile}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -36,7 +38,7 @@ process SEPARATEIMAGECHANNELS {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    
+
     touch ${prefix}.tif
 
     cat <<-END_VERSIONS > versions.yml
