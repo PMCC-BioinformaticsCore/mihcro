@@ -95,7 +95,7 @@ ggplot(Morphology_mesmer, aes(x = Area, fill = Detecter)) +
 
 ```
 
-## Eccentricity distribution  
+## Eccentricity distribution
 ```{r}
 ggplot(Morphology_mesmer, aes(x = Eccentricity, fill = Detecter)) +
   geom_density(alpha = 0.5) +
@@ -108,7 +108,7 @@ ggplot(Morphology_mesmer, aes(x = Eccentricity, fill = Detecter)) +
   )
 ```
 
-## Solidity distribution  
+## Solidity distribution
 ```{r}
 ggplot(Morphology_mesmer, aes(x = Solidity, fill = Detecter)) +
   geom_density(alpha = 0.5) +
@@ -121,7 +121,7 @@ ggplot(Morphology_mesmer, aes(x = Solidity, fill = Detecter)) +
   )
 ```
 
-## Extent distribution  
+## Extent distribution
 ```{r}
 ggplot(Morphology_mesmer, aes(x = Extent, fill = Detecter)) +
   geom_density(alpha = 0.5) +
@@ -133,7 +133,7 @@ ggplot(Morphology_mesmer, aes(x = Extent, fill = Detecter)) +
     y = "Density"
   )
 ```
-  
+
 # descriptive statistics {.tabset}
 ## raw
 ```{r, echo=FALSE}
@@ -339,7 +339,7 @@ ggplot(df_clr_mesmer, aes(sample = Value_CLR, color = Marker)) +
 
 ```{r, echo=FALSE, warning=FALSE, include=F}
 mesmer_data$CellID <- make.unique(as.character(mesmer_data$CellID)) # make sure the cell ID is unique
-marker_cols <- markerfile$marker_name
+marker_cols <- setdiff(markerfile$marker_name, "DAPI")
 meta_cols <- setdiff(colnames(mesmer_data), marker_cols)
 
 # build marker matrix
