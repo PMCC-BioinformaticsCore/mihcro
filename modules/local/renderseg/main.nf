@@ -3,7 +3,7 @@ process RENDER_SEGMENTATION {
     label 'process_low'
     publishDir "${params.outdir}/images", pattern: "*_boundaries.tiff", mode: 'copy'
 
-    container "ghcr.io/patrickcrock/mihcro_python:1.0"
+    container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:
     tuple val(meta), path(dapi_image)

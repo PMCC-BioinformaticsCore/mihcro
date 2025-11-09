@@ -3,7 +3,7 @@ process DOWNSCALE_OME_TIFF {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "ghcr.io/patrickcrock/mihcro_python:1.0"
+    container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:
     tuple val(meta), path(ome_tiff)

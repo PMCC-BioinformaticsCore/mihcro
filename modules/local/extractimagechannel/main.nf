@@ -2,7 +2,7 @@ process EXTRACTIMAGECHANNEL {
     tag "$meta.id"
     label 'process_low'
 
-    container "ghcr.io/patrickcrock/mihcro_python:1.0"
+    container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:
     tuple val(meta), path(xml), path(ome_tif)

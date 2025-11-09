@@ -2,7 +2,7 @@ process DAPI_BACKGROUND_REMOVAL {
     tag "$meta.id"
     label 'process_low'
 
-    container "ghcr.io/patrickcrock/mihcro_python:1.0"
+    container "ghcr.io/patrickcrock/mihcro_python:1.1"
     containerOptions "--env MPLCONFIGDIR=/tmp/matplotlib-${task.index}"
 
     publishDir "${params.outdir}/dapi_processed", mode: 'copy'
