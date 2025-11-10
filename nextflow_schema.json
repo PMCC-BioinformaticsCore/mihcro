@@ -44,6 +44,11 @@
                     "enum": ["1um", "none"],
                     "description": "Downscaling mode for image processing. '1um' for downscaling of image to 1 pixel/1um (recommended), 'none' for no downscaling."
                   },
+                "nuclear_channel": {
+                    "type": "string",
+                    "default": "DAPI",
+                    "description": "Name of your nuclear marker channel for cell segmentation. Defaults to DAPI."
+                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",
