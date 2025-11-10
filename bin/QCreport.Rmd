@@ -151,22 +151,6 @@ mesmer_summary %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-## log transformation
-```{r, echo=FALSE}
-mesmer_log_summary <- mesmer_marker %>% mutate(Value=log1p(Value)) %>%
-  group_by(Marker) %>%
-  summarise(
-    Mean = mean(Value),
-    Median = median(Value),
-    SD = sd(Value),
-    Min = min(Value),
-    Max = max(Value)
-  )
-mesmer_log_summary %>%
-  kbl(caption = "Statistical Table") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
-```
-
 ## CLR transformation
 ```{r, echo=FALSE}
 df_clr_mesmer <- mesmer_marker %>%
@@ -199,16 +183,6 @@ ggplot(mesmer_marker, aes(x = Value, fill = Marker)) +
        x = "intensity", y = "density")
 ```
 
-## log transformation
-```{r, echo=FALSE}
-ggplot(mesmer_marker %>% mutate(Value=log1p(Value)), aes(x = Value, fill = Marker)) +
-  geom_density() +
-  theme_minimal() +
-  facet_wrap(~Marker, scales = "free", ncol = 4) +
-  labs(title = "Marker intensity",
-       x = "intensity", y = "density")
-```
-
 ## CLR transformation
 ```{r, echo=FALSE}
 df_clr_mesmer <- mesmer_marker %>%
@@ -228,15 +202,6 @@ ggplot(df_clr_mesmer, aes(x = Value_CLR, fill = Marker)) +
 ## raw
 ```{r, echo=FALSE}
 ggplot(mesmer_marker, aes(x = Marker, y = Value, fill = Marker)) +
-  geom_boxplot() +
-  theme_minimal() +
-  labs(title = "Boxplot of intensity distribution",
-       x = "markers", y = "intensity")
-```
-
-## log transformation
-```{r, echo=FALSE}
-ggplot(mesmer_marker %>% mutate(Value=log1p(Value)), aes(x = Marker, y = Value, fill = Marker)) +
   geom_boxplot() +
   theme_minimal() +
   labs(title = "Boxplot of intensity distribution",
@@ -285,31 +250,12 @@ ggplot(mesmer_median, aes(x = Sample, y = Marker, fill = Median, scale = "row"))
 # QQ plot {.tabset}
 ## raw
 ```{r, echo=FALSE}
+if (nrow(mesmer_marker>100000)) {
+  print("downsampling large dataset...")
+  mesmer_marker <- mesmer_marker[sample(1:nrow(mesmer_marker), size = 100000, replace = F),]
+}
+
 ggplot(mesmer_marker, aes(sample = Value, fill = Marker, color = Marker)) +
-  stat_qq() +
-  stat_qq_line() +
-  theme_minimal() +
-  facet_wrap(~Marker, scales = "free", ncol = 4) +
-  labs(title = "QQ plot",
-       x = "Theoretical Quantiles", y = "Sample Quantiles")
-```
-
-## log transformation
-```{r, echo=FALSE}
-ggplot(mesmer_marker %>% mutate(Value=log1p(Value)), aes(sample = Value, color = Marker)) +
-  stat_qq() +
-  stat_qq_line() +
-  theme_minimal() +
-  facet_wrap(~Marker, scales = "free", ncol = 4) +
-  labs(title = "QQ plot",
-       x = "Theoretical Quantiles", y = "Sample Quantiles")
-```
-
-## arcsin transformation
-```{r, echo=FALSE}
-asinh.transform = function(x, cofactor) {
-  return(asinh(x/cofactor)) }
-ggplot(mesmer_marker %>% mutate(Value=asinh.transform(Value, 200)), aes(sample = Value, color = Marker)) +
   stat_qq() +
   stat_qq_line() +
   theme_minimal() +
@@ -359,113 +305,22 @@ seu_mesmer <- CreateSeuratObject(
 
 # normalization and feature selection
 DefaultAssay(seu_mesmer) <- "PROT"
-seu_mesmer <- NormalizeData(seu_mesmer, normalization.method = "CLR", margin = 2, verbose = FALSE) # CLR transformation
+seu_mesmer <- NormalizeData(seu_mesmer, normalization.method = "CLR", margin = 2, verbose = T) # CLR transformation
 VariableFeatures(seu_mesmer) <- rownames(seu_mesmer) # choose all marker as targeted feature
-seu_mesmer <- ScaleData(seu_mesmer, verbose = FALSE) # z-score (x - mean)/sd
+seu_mesmer <- ScaleData(seu_mesmer, verbose = T) # z-score (x - mean)/sd
 
 # dimentionality reduction and clustering
 seu_mesmer <- RunPCA(seu_mesmer, npcs = 6, features = VariableFeatures(seu_mesmer))
 pcs_use <- 1:min(6, ncol(Embeddings(seu_mesmer, "pca"))) # choose the number of PC
 seu_mesmer <- FindNeighbors(seu_mesmer, reduction = "pca", dims = pcs_use)
 seu_mesmer <- RunUMAP(seu_mesmer, dims = pcs_use)
-seu_mesmer <- FindClusters(seu_mesmer, resolution = seq(from=0.2, to=0.8, by=0.1), verbose = FALSE)
+seu_mesmer <- FindClusters(seu_mesmer, resolution = c(0.25,0.5,0.75,1), verbose = T)
 ```
 
-## resolution = 0.2
+## resolution = 0.25
 
 ```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.2
-seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
-Idents(seu_mesmer) <- "seurat_clusters"
-# visualization
-## umap
-DimPlot(seu_mesmer, reduction = "umap", label = TRUE, label.box = TRUE)
-## tissue image
-centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
-ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
-seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
-
-#df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
-#df_plot=seu_mesmer[[]]
-#ggplot(df_plot, aes(x = X_centroid, y = Y_centroid, color = res_0.2)) +
-#  geom_point(size = 0.6) +
-#  coord_fixed() + # coordinate ratio: 1:1
-#  scale_y_reverse() +
-#  theme_minimal()
-
-## heatmap
-avg <- AverageExpression(
-  seu_mesmer,
-  assays = "PROT",
-  group.by = "seurat_clusters",
-  slot = "data"
-)$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
-
-## violet plot
-
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE
-)
-```
-
-## resolution = 0.3
-
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.3
-seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
-Idents(seu_mesmer) <- "seurat_clusters"
-# visualization
-## umap
-DimPlot(seu_mesmer, reduction = "umap", label = TRUE, label.box = TRUE)
-## tissue image
-centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
-ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
-seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
-
-#df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
-#df_plot=seu_mesmer[[]]
-#ggplot(df_plot, aes(x = X_centroid, y = Y_centroid, color = res_0.2)) +
-#  geom_point(size = 0.6) +
-#  coord_fixed() + # coordinate ratio: 1:1
-#  scale_y_reverse() +
-#  theme_minimal()
-
-## heatmap
-avg <- AverageExpression(
-  seu_mesmer,
-  assays = "PROT",
-  group.by = "seurat_clusters",
-  slot = "data"
-)$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
-
-## violet plot
-
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE
-)
-```
-
-
-## resolution = 0.4
-
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.4
+resolution=0.25
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
@@ -554,10 +409,10 @@ VlnPlot(
 ```
 
 
-## resolution = 0.6
+## resolution = 0.75
 
 ```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.6
+resolution=0.75
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
@@ -600,57 +455,11 @@ VlnPlot(
 ```
 
 
-## resolution = 0.7
-
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.7
-seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
-Idents(seu_mesmer) <- "seurat_clusters"
-# visualization
-## umap
-DimPlot(seu_mesmer, reduction = "umap", label = TRUE, label.box = TRUE)
-## tissue image
-centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
-ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
-seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
-
-#df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
-#df_plot=seu_mesmer[[]]
-#ggplot(df_plot, aes(x = X_centroid, y = Y_centroid, color = res_0.2)) +
-#  geom_point(size = 0.6) +
-#  coord_fixed() + # coordinate ratio: 1:1
-#  scale_y_reverse() +
-#  theme_minimal()
-
-## heatmap
-avg <- AverageExpression(
-  seu_mesmer,
-  assays = "PROT",
-  group.by = "seurat_clusters",
-  slot = "data"
-)$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
-
-## violet plot
-
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE
-)
-```
-
-
-## resolution = 0.8
+## resolution = 1
 
 
 ```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=0.8
+resolution=1
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
