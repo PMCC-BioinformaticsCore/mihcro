@@ -40,11 +40,24 @@ markerfile <- read.csv(mark_path, header=TRUE)
 marker_number <- nrow(markerfile)
 markerfile$marker_name <- make.names(markerfile$marker_name)
 
+```
 
-mesmer_marker <- mesmer_data %>% select(CellID, all_of(markerfile$marker_name)) %>%
+```{r, echo=FALSE}
+if (any(!markerfile$marker_name %in% colnames(mesmer_data))) {
+
+    warning("Some of the markers listed in the markerfile are not present in the data:",
+            paste(markerfile$marker_name[!markerfile$marker_name %in% colnames(mesmer_data)])
+            )
+
+}
+
+eff_markers <- intersect(markerfile$marker_name, colnames(mesmer_data))
+
+mesmer_marker <- mesmer_data %>% select(CellID, all_of(eff_markers)) %>%
   pivot_longer(cols = -CellID,
                names_to = "Marker",
                values_to = "Value")
+               
 ```
 
 ```{r, echo=FALSE}
@@ -226,7 +239,7 @@ ggplot(df_clr_mesmer, aes(x = Marker, y = Value_CLR, fill = Marker)) +
 
 ```{r, echo=FALSE}
 
-mesmer_corr_matrix <- mesmer_data %>% select(all_of(markerfile$marker_name)) %>%
+mesmer_corr_matrix <- mesmer_data %>% select(all_of(eff_markers)) %>%
   cor() %>%
   round(digits=2)
 
@@ -285,7 +298,7 @@ ggplot(df_clr_mesmer, aes(sample = Value_CLR, color = Marker)) +
 
 ```{r, echo=FALSE, warning=FALSE, include=F}
 mesmer_data$CellID <- make.unique(as.character(mesmer_data$CellID)) # make sure the cell ID is unique
-marker_cols <- setdiff(markerfile$marker_name, "DAPI")
+marker_cols <- setdiff(eff_markers, "DAPI")
 meta_cols <- setdiff(colnames(mesmer_data), marker_cols)
 
 # build marker matrix
