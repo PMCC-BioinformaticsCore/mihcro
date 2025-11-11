@@ -263,9 +263,11 @@ ggplot(mesmer_median, aes(x = Sample, y = Marker, fill = Median, scale = "row"))
 # QQ plot {.tabset}
 ## raw
 ```{r, echo=FALSE}
-if (nrow(mesmer_marker>100000)) {
+n_cells <- n_distinct(mesmer_marker$CellID)  
+if (n_cells > 100000) {
   print("downsampling large dataset...")
-  mesmer_marker <- mesmer_marker[sample(1:nrow(mesmer_marker), size = 100000, replace = F),]
+  sampled_cells <- sample(unique(mesmer_marker$CellID), size = 100000, replace = FALSE)
+  mesmer_marker <- mesmer_marker[mesmer_marker$CellID %in% sampled_cells, ]
 }
 
 ggplot(mesmer_marker, aes(sample = Value, fill = Marker, color = Marker)) +
