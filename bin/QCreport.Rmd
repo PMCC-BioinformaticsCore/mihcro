@@ -38,7 +38,7 @@ mark_path <- params$markerfile
 message("Markerfile at:", mark_path)
 markerfile <- read.csv(mark_path, header=TRUE)
 marker_number <- nrow(markerfile)
-markerfile$marker_name <- make.names(markerfile$marker_name)
+markerfile$marker_name <- markerfile$marker_name %>% make.names() %>% trimws()
 
 ```
 
@@ -57,7 +57,7 @@ mesmer_marker <- mesmer_data %>% select(CellID, all_of(eff_markers)) %>%
   pivot_longer(cols = -CellID,
                names_to = "Marker",
                values_to = "Value")
-               
+
 ```
 
 ```{r, echo=FALSE}
