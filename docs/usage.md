@@ -57,14 +57,14 @@ Markers do not need to be listed in any specific order. Note that marker names c
 
 ### Output directory
 
-The last required output for the pipeline is the `--outdir` parameter, which is simply a path to the directory where you want pipeline outputs to be stored. It is called like this:
+The last required input for the pipeline is the `--outdir` parameter, which is simply a path to the directory where you want pipeline outputs to be stored. It is called like this:
 
 ```bash
 --outdir '[path to output directory]'
 ```
 
 ### Optional pipeline parameters
-The following parameters are optional -- they either have defaults built-in, or refer to optional steps in the pipeline.
+The following parameters are optional -- they either have defaults built-in, or refer to optional steps in the pipeline. Click on a topic to expand it for more information.
 
 <details>
 <summary><h4>Segmentation</h4></summary>
@@ -73,6 +73,9 @@ The pipeline, by default, runs Mesmer for segmentation. However, there is also t
 - `--segmentation` (string, default: `mesmer`): Cell segmentation method. Options:
   - `mesmer`
   - `cellpose`
+
+Sometimes, your panel may have the DNA stain stored under a name other than DAPI. In these cases, use the `--nuclear_marker` parameter to specify the channel on which to segment nuclei:
+- `--nuclear_marker` (string, default `DAPI`)
 
 </details>
 

@@ -27,13 +27,13 @@ The pipeline accepts three main formats of input:
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
-First, prepare a samplesheet that looks as follows:
+First, prepare a samplesheet that follows the format below:
 
-`samplesheet.csv`:
+`example_samplesheet.csv`:
 
 ```csv
 sample,tiffs,format
-SAMPLE_NAME,/path/to/tiff/directory,tiles
+EXAMPLE_SAMPLE_NAME,/path/to/tiff/directory,tiles
 ```
 
 Each row represents a directory which contains several .tiff tiles, or a single stitched .tiff or .ome.tiff.
@@ -43,9 +43,9 @@ The `format` column must be one of the following for each sample:
 * `stitched` for pre-stitched, ome-tiff inputs
 * `fused` for legacy HALO outputs (indica-format tiff files)
 
-Next, you'll need to prepare a list of your markers:
+Next, you'll need to prepare a list of your markers, which will look something like this:
 
-`markers.csv`:
+`example_markers.csv`:
 
 ```csv
 marker_name
@@ -58,13 +58,13 @@ CD11c
 
 Each row represents a different channel in your images. Note that marker names cannot contain spaces!
 
-Now, you can run the pipeline using:
+Now, you can run the pipeline using the following basic parameters:
 
 ```bash
 nextflow run nf-core/microscopy \
    -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --markers markers.csv \
+   --input example_samplesheet.csv \
+   --markers example_markers.csv \
    --outdir <OUTDIR>
 ```
 > [!NOTE]
