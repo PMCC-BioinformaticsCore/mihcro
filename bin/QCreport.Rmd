@@ -31,7 +31,7 @@ message("Running QC Report for:", samplename)
 cbf_path <- params$cellbyfeature
 message("Cell by feature csv at:", cbf_path)
 mesmer_data <- read.csv(cbf_path, na.strings=c("", "inf"))
-colnames(mesmer_data) <- make.names(colnames(mesmer_data))
+colnames(mesmer_data) <- colnames(mesmer_data) %>% make.names() %>% trimws()
 mesmer_data <- mesmer_data %>% drop_na()
 
 mark_path <- params$markerfile
