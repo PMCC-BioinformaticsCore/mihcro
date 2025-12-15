@@ -245,44 +245,56 @@ class OMETIFFRescaler:
 
         self.metadata = pyramid_info
         return pyramid_info
-
+        
     def _select_optimal_level(self, levels: List[Dict]) -> int:
-        """Select optimal pyramid level to minimize error from target."""
+        """Select optimal pyramid level balancing error and scaling requirements."""
+
+        acceptable_threshold = 0.15  # 0.15 µm/pixel max error
+
         best_level = 0
         best_error = float('inf')
+        best_requires_scaling = True
 
-        # First pass: look for levels that need NO additional scaling
-        for level_info in levels:
-            if level_info['additional_scale_integer'] == 1:
-                error = level_info['scale_error']
-                if error < 0.01:
-                    self.logger.info(
-                        f"Level {level_info['level']} needs no scaling and achieves "
-                        f"target within 0.01 µm/pixel (error={error:.4f})"
-                    )
-                    return level_info['level']
-
-                if error < best_error:
-                    best_error = error
-                    best_level = level_info['level']
-
-        # If we found a no-scaling level, use it
-        if best_error < float('inf'):
-            self.logger.info(
-                f"Selected level {best_level} (no scaling needed, error={best_error:.4f} µm/pixel)"
-            )
-            return best_level
-
-        # Second pass: allow levels that need scaling
-        best_error = float('inf')
         for level_info in levels:
             error = level_info['scale_error']
-            if error < best_error:
-                best_error = error
-                best_level = level_info['level']
+            needs_scaling = level_info['additional_scale_integer'] != 1
+            level = level_info['level']
 
+            # Skip levels with zero or invalid scaling
+            if level_info['additional_scale_integer'] == 0:
+                continue
+
+            # If error is within acceptable threshold and no scaling needed, use it immediately
+            if error <= acceptable_threshold and not needs_scaling:
+                self.logger.info(
+                    f"Level {level} needs no scaling and error "
+                    f"({error:.4f}) within threshold ({acceptable_threshold})"
+                )
+                return level
+
+            # Determine if this level is better
+            is_better = False
+
+            if error < best_error - 0.1:  # Significantly better error
+                is_better = True
+            elif abs(error - best_error) < 0.1:  # Similar error (within 0.1)
+                # When errors are similar, prefer:
+                # 1. No scaling over scaling
+                # 2. Higher pyramid level (smaller data, faster)
+                if not needs_scaling and best_requires_scaling:
+                    is_better = True
+                elif needs_scaling == best_requires_scaling:
+                    # Both need scaling or both don't - prefer higher level
+                    is_better = level > best_level
+
+            if is_better:
+                best_error = error
+                best_level = level
+                best_requires_scaling = needs_scaling
+
+        scaling_msg = "scaling required" if best_requires_scaling else "no scaling needed"
         self.logger.info(
-            f"Selected level {best_level} (scaling required, error={best_error:.4f} µm/pixel)"
+            f"Selected level {best_level} ({scaling_msg}, error={best_error:.4f} µm/pixel)"
         )
         return best_level
 
