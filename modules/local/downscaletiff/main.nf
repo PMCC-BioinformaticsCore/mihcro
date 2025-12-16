@@ -20,10 +20,10 @@ process DOWNSCALE_OME_TIFF {
         ${ome_tiff} \\
         --prefix ${prefix}
 
-    cat <<END_VERSIONS > versions.yml
+    cat <<-END_VERSIONS > versions.yml
 "${task.process}":
-    tifffile: \$(python -c "import tifffile; print(tifffile.__version__)")
-    scipy: \$(python -c "import scipy; print(scipy.__version__)")
+        tifffile: \$(python -c "import tifffile; print(tifffile.__version__)")
+        scipy: \$(python -c "import scipy; print(scipy.__version__)")
 END_VERSIONS
     """
 }
