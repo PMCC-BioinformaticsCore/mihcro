@@ -11,7 +11,7 @@
 
 The purpose of the pipeline is to convert tiled or stitched multi-channel microscopy images into clean single-cell data. It takes as input a samplesheet, and an optional list of markers present on the panel. It stitches images together if required, performs cell segmentation on the DAPI channel, quantifies outputs into single-cell format and then runs a few basic clustering analyses.
 
-The segmentation model to be used can be selected (currently mesmer is default, and cellpose is also available). There are optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1um/pixel scale.
+The segmentation model to be used can be selected (currently mesmer is default, and cellpose is also available). By default, the pipeline performs segmentation on the DAPI marker, but there is also the option to specify a membrane marker with which to segment whole cells. There are also optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1um/pixel scale.
 
 The pipeline returns a processed TIFF file, a segmented image mask and summary, a cell x feature spreadsheet, as well as an HTML report on the cell x feature data, including segmentation summary statistics, marker intensity summary statistics, and UMAP reduction and clustering.
 

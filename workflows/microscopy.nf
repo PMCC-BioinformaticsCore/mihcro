@@ -13,10 +13,13 @@ include { INDICA_TIFF_TO_OME } from '../modules/local/halo/indicatifftoome/main.
 include { HANDLE_STITCHED } from '../modules/local/handlestitched/main'
 include { EXTRACTIMAGECHANNEL as EXTRACT_DAPI } from '../modules/local/extractimagechannel/main'
 include { EXTRACTIMAGECHANNEL as EXTRACT_AF } from '../modules/local/extractimagechannel/main'
+include { EXTRACTIMAGECHANNEL as EXTRACT_MEMBRANE } from '../modules/local/extractimagechannel/main'
+
 
 include { DOWNSCALE_OME_TIFF } from '../modules/local/downscaletiff'
 
 include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
+include { PREPROCESS_CELLPOSE } from '../modules/local/cellpose/main'
 include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
 
 include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
@@ -124,13 +127,24 @@ workflow MICROSCOPY {
         ch_nuclear_image = EXTRACT_DAPI.out.image
     }
 
-    // Segmentation - use only nuclear image
+    // Extract membrane channel if requested
+    if (params.membrane_channel != null) {
+        EXTRACT_MEMBRANE(BFTOOLS_TIFFMETAXML.out.xml_tif)
+        ch_membrane = EXTRACT_MEMBRANE.out.image
+    } else {
+        // Create a dummy membrane channel matched to nuclear images
+        ch_membrane = ch_nuclear_image.map { meta, img -> [meta, []] }
+    }
+
+    // Segmentation
 
     if (params.segmentation == 'mesmer') {
+
         DEEPCELL_MESMER (
             ch_nuclear_image,
-            [[], []]
+            ch_membrane
         )
+
         ch_segmentation = DEEPCELL_MESMER.out.mask
             .map { meta, it ->
                 return [meta.id, meta + [seg: 'mesmer'], it]
@@ -138,10 +152,19 @@ workflow MICROSCOPY {
         ch_versions = ch_versions.mix(DEEPCELL_MESMER.out.versions)
 
     } else if (params.segmentation == 'cellpose') {
+
+        if (params.membrane_channel != null) {
+            PREPROCESS_CELLPOSE(ch_nuclear_image, ch_membrane)
+            ch_cellpose_input = PREPROCESS_CELLPOSE.out.combined
+        } else {
+            ch_cellpose_input = ch_nuclear_image
+        }
+
         CELLPOSE (
-            ch_nuclear_image,
+            ch_cellpose_input,
             []
         )
+
         ch_segmentation = CELLPOSE.out.mask
             .map { meta, it ->
                 return [meta.id, meta + [seg: 'cellpose'], it]
