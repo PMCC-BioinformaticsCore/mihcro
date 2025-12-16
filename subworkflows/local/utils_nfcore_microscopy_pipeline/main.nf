@@ -84,9 +84,31 @@ workflow PIPELINE_INITIALISATION {
 
     Channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-        .map {
-            meta, tifs ->
-                return [ meta, [ tifs ] ]
+        .map { meta, tifs ->
+            def path = file(tifs)
+            def tif_list
+
+            if (path.isDirectory()) {
+                // Directory: grab all TIFFs
+                tif_list = path.listFiles().findAll {
+                    it.name.endsWith('.tif') || it.name.endsWith('.tiff') ||
+                    it.name.endsWith('.ome.tif') || it.name.endsWith('.ome.tiff')
+                }
+                if (tif_list.isEmpty()) {
+                    error("Sample '${meta.id}': No TIFF files found in directory: ${tifs}")
+                }
+            } else if (path.isFile()) {
+                // Single file: use it directly
+                if (!(path.name.endsWith('.tif') || path.name.endsWith('.tiff') ||
+                    path.name.endsWith('.ome.tif') || path.name.endsWith('.ome.tiff'))) {
+                    error("Sample '${meta.id}': File must be a TIFF: ${tifs}")
+                }
+                tif_list = [path]
+            } else {
+                error("Sample '${meta.id}': Path does not exist or is not a file/directory: ${tifs}")
+            }
+
+            return [meta, tif_list]
         }
         .set { ch_samplesheet }
 
