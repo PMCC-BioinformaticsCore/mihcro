@@ -201,12 +201,16 @@ class OMETIFFRescaler:
 
             series = tif.series[0]
 
-            if len(tif.series) > 1:
-                levels_to_check = [(i, s) for i, s in enumerate(tif.series)]
-            elif hasattr(series, 'levels') and series.levels:
-                levels_to_check = [(i, level) for i, level in enumerate(series.levels)]
-            else:
-                levels_to_check = [(0, series)]
+            ### NOTE: forcing to use series0, since the assumption of existing pyramid image with 2X scaling is not always met, it could use 4X or others, 
+            ###       so proper fix would need to calculate scale factor from the series dimension directly.
+            ###
+            ### if len(tif.series) > 1:
+            ###    levels_to_check = [(i, s) for i, s in enumerate(tif.series)]
+            ### elif hasattr(series, 'levels') and series.levels:
+            ###    levels_to_check = [(i, level) for i, level in enumerate(series.levels)]
+            ### else:
+
+            levels_to_check = [(0, series)]
 
             for level_idx, level in levels_to_check:
                 scale_factor = 2 ** level_idx
