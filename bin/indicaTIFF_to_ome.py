@@ -31,7 +31,8 @@ def main():
             channel.attrib['name'] for channel in tree.iter('channel')
         ]
 
-        objective_value = float(tree.find('.//objective').attrib['value'])
+        # some fused tiff does not have objective value, just skip this..
+        #objective_value = float(tree.find('.//objective').attrib['value'])
 
         with TiffWriter(
             args.output, bigtiff=True, ome=True, byteorder=tif.byteorder
@@ -39,8 +40,9 @@ def main():
             for series in tif.series:
                 print("SERIES:", series)
                 print("  series.axes:", series.axes, "series.shape:", series.shape)
-                assert series.axes == 'IYX'
-                assert series.shape[0] == len(channel_names)
+                # assert series.axes == 'IYX'
+                assert series.axes in ("IYX","CYX")
+                #assert series.shape[0] == len(channel_names)
 
                 for i, level in enumerate(series.levels):
                     page = level.keyframe
@@ -89,8 +91,13 @@ def main():
                         resx, resy = page.get_resolution('micrometer')
 
                         # Correct resolution by objective magnification
-                        resx = resx / objective_value
-                        resy = resy / objective_value
+                        #resx = resx / objective_value
+                        #resy = resy / objective_value
+                        ## get_resolution seems to return #pixels per micrometer; OME physical unit specifies micrometer per pixel instead..
+                        ## need to invert it.
+                        ## objective_value is the magnification (eg. 20X), is not necessary in this PhysicalSize
+                        resx = 1.0/resx 
+                        resy = 1.0/resy 
 
                         metadata = {
                             'axes': 'CYX',
