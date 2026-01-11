@@ -200,27 +200,32 @@ class OMETIFFRescaler:
             self.logger.info(f"Base PhysicalSizeX: {physical_x} µm/pixel")
 
             series = tif.series[0]
+            detected_axes, y_idx, x_idx = self.detect_axes_order(series.axes, series.shape)
 
-            ### NOTE: forcing to use series0, since the assumption of existing pyramid image with 2X scaling is not always met, it could use 4X or others, 
+            base_size_x = series.shape[x_idx]
+
+            ### NOTE: forcing to use series0, since the assumption of existing pyramid image with 2X scaling is not always met, it could use 4X or others,
             ###       so proper fix would need to calculate scale factor from the series dimension directly.
             ###
-            ### if len(tif.series) > 1:
-            ###    levels_to_check = [(i, s) for i, s in enumerate(tif.series)]
-            ### elif hasattr(series, 'levels') and series.levels:
-            ###    levels_to_check = [(i, level) for i, level in enumerate(series.levels)]
-            ### else:
-
-            levels_to_check = [(0, series)]
+            if len(tif.series) > 1:
+               levels_to_check = [(i, s) for i, s in enumerate(tif.series)]
+            elif hasattr(series, 'levels') and series.levels:
+               levels_to_check = [(i, level) for i, level in enumerate(series.levels)]
+            else:
+                levels_to_check = [(0, series)]
 
             for level_idx, level in levels_to_check:
-                scale_factor = 2 ** level_idx
+
+                ome_axes = level.axes if hasattr(level, 'axes') else (series.axes if hasattr(series, 'axes') else '')
+                detected_axes, y_idx, x_idx = self.detect_axes_order(ome_axes, level.shape)
+
+                scale_factor_ratio = base_size_x / level.shape[x_idx]
+                scale_factor = int(np.floor(scale_factor_ratio + 0.5))
+
                 effective_mpp = physical_x * scale_factor
                 ratio = self.target_mpp / effective_mpp
                 integer_scale = int(np.floor(ratio + 0.5))
                 final_mpp = effective_mpp * integer_scale
-
-                ome_axes = level.axes if hasattr(level, 'axes') else (series.axes if hasattr(series, 'axes') else '')
-                detected_axes, y_idx, x_idx = self.detect_axes_order(ome_axes, level.shape)
 
                 level_info = {
                     'level': level_idx,
@@ -249,7 +254,7 @@ class OMETIFFRescaler:
 
         self.metadata = pyramid_info
         return pyramid_info
-        
+
     def _select_optimal_level(self, levels: List[Dict]) -> int:
         """Select optimal pyramid level balancing error and scaling requirements."""
 
