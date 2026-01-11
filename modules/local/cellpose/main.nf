@@ -24,10 +24,11 @@ process CELLPOSE {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def model_command = model ? "--pretrained_model $model" : ""
+    def membrane_command = params.membrane_channel ? "--chan2 1 --chan 0" : "--chan 0"
     """
     export OMP_NUM_THREADS=${task.cpus}
     export MKL_NUM_THREADS=${task.cpus}
-    
+
     export HOME=./
     mkdir -p ./numba_cache_dir
     export NUMBA_CACHE_DIR=./numba_cache_dir
@@ -36,6 +37,7 @@ process CELLPOSE {
         --image_path $image \\
         --save_tif \\
         $model_command \\
+        $membrane_command \\
         $args
 
     cat <<-END_VERSIONS > versions.yml
@@ -61,3 +63,34 @@ process CELLPOSE {
     """
 
 }
+
+process PREPROCESS_CELLPOSE {
+    tag "$meta.id"
+    label 'process_low'
+
+    container "ghcr.io/patrickcrock/mihcro_python:1.1"
+
+    input:
+    tuple val(meta), path(nuclear)
+    tuple val(meta2), path(membrane)
+
+    output:
+    tuple val(meta), path("*_combined.tif"), emit: combined
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env python3
+    import numpy as np
+    import tifffile
+
+    nuclear_img = tifffile.imread("$nuclear")
+    membrane_img = tifffile.imread("$membrane")
+
+    if nuclear_img.shape != membrane_img.shape:
+        raise ValueError("Images must have same dimensions")
+
+    stacked = np.stack([membrane_img, nuclear_img], axis=0)
+    tifffile.imwrite("${prefix}_combined.tif", stacked)
+    """
+ }

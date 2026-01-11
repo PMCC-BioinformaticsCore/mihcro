@@ -15,34 +15,30 @@ process HANDLE_STITCHED {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
+
+    // 1. Convert input to a List, regardless of whether it's a single file or a list
+    def input_files = tiff_dir instanceof List ? tiff_dir : [tiff_dir]
+
+    // 2. Check the number of files and throw a Nextflow error (more meaningful than a shell exit)
+    if (input_files.size() == 0) {
+        error "ERROR [HANDLE_STITCHED]: No files received for sample '${meta.id}'. Expected exactly one file."
+    }
+
+    if (input_files.size() > 1) {
+        def file_list = input_files.join('\n  - ')
+        error "ERROR [HANDLE_STITCHED]: Multiple files received for sample '${meta.id}'. Expected exactly one file, but found ${input_files.size()}:\n  - ${file_list}"
+    }
+
+    // 3. Get the single file path (Now we know there is exactly one)
+    def tiff_file = input_files[0]
     """
-    # Collect TIFF files into an array, safe against spaces/newlines
-    mapfile -d '' tiff_files < <(
-        find -L "${tiff_dir}" -maxdepth 1 -type f \
-        '(' -name "*.tif" -o -name "*.tiff" -o -name "*.ome.tif" -o -name "*.ome.tiff" ')' -print0
-    )
-
-    # Check number of TIFF files
-    if [ \${#tiff_files[@]} -eq 0 ]; then
-        echo "ERROR: No TIFF files found in ${tiff_dir}"
-        exit 1
-    elif [ \${#tiff_files[@]} -gt 1 ]; then
-        echo "ERROR: Multiple TIFF files found in ${tiff_dir}. Expected exactly one."
-        # Print them safely
-        for f in "\${tiff_files[@]}"; do
-            printf '  %s\n' "\$f"
-        done
-        exit 1
-    fi
-
     # Create symlink to the single TIFF file
-    tiff_file="\${tiff_files[0]}"
-    ln -s $args "\${tiff_file}" "${prefix}.ome.tiff"
+    ln -s ${args} ${tiff_file} "${prefix}.ome.tiff"
 
-    cat <<EOF > versions.yml
+    cat <<-END_VERSIONS > versions.yml
 "${task.process}":
     handle_stitched: 1.0.0
-EOF
+END_VERSIONS
     """
 
     stub:
@@ -50,9 +46,9 @@ EOF
     """
     touch ${prefix}.ome.tiff
 
-    cat <<EOF > versions.yml
+    cat <<-END_VERSIONS > versions.yml
 "${task.process}":
     handle_stitched: 1.0.0
-EOF
+END_VERSIONS
     """
 }

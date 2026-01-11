@@ -49,6 +49,10 @@
                     "default": "DAPI",
                     "description": "Name of your nuclear marker channel for cell segmentation. Defaults to DAPI."
                 },
+                "membrane_channel": {
+                    "type": "string",
+                    "description": "Name of your membrane marker channel for cell segmentation."
+                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",

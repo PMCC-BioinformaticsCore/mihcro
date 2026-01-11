@@ -316,9 +316,10 @@ if (use_sketch) {
   DefaultAssay(seu_mesmer) <- "sketch"
   seu_mesmer <- ScaleData(seu_mesmer, verbose = T)
   seu_mesmer <- RunPCA(seu_mesmer, npcs = 6, verbose = T)
-  seu_mesmer <- RunUMAP(seu_mesmer, dims = 1:6, verbose = T,
+  pcs_use <- 1:min(6, ncol(Embeddings(seu_mesmer, "pca")))
+  seu_mesmer <- RunUMAP(seu_mesmer, dims = pcs_use, verbose = T,
                         reduction.name = "umap.sketch", reduction.key = "UMAP_sketch_")
-  seu_mesmer <- FindNeighbors(seu_mesmer, dims = 1:6, verbose = T)
+  seu_mesmer <- FindNeighbors(seu_mesmer, dims = pcs_use, verbose = T)
   seu_mesmer <- FindClusters(seu_mesmer, resolution = c(0.25, 0.5, 0.75, 1), verbose = T)
 
   seu_mesmer <- ProjectData(
@@ -328,7 +329,7 @@ if (use_sketch) {
     sketched.assay = "sketch",
     sketched.reduction = "pca",
     umap.model = "umap.sketch",
-    dims = 1:6,
+    dims = pcs_use,
     refdata = list(
       PROT_snn_res.0.25 = "sketch_snn_res.0.25",
       PROT_snn_res.0.5 = "sketch_snn_res.0.5",

@@ -10,8 +10,8 @@
  *
  * @author Pete Bankhead
  *
- * Modified by Song Li 
- * Version: 0.0.1
+ * Modified by Song Li, Patrick Crock
+ * Version: 0.0.2
  */
 
 import qupath.lib.common.GeneralTools
@@ -30,33 +30,50 @@ import static qupath.lib.gui.scripting.QPEx.*
 
 boolean promptForFiles = false
 
-// 
+//
 // Read .tif files inside a directory into list
-// 
+//
 
-File dir = new File(args[0])
-List<File> files
-files = dir.listFiles()
+// Robust Argument Parsing
+// The last argument is always the output name
+def outputName = args[-1]
+List<File> files = []
+
+// Check if the first argument is our manifest file (ending in .list)
+File firstArg = new File(args[0])
+
+if (firstArg.exists() && firstArg.name.endsWith('.list')) {
+    print "Reading input files from manifest: " + firstArg.name + "\n"
+    firstArg.eachLine { line ->
+        if (line.trim()) {
+            files.add(new File(line.trim()))
+        }
+    }
+} else {
+    // Legacy behavior: Read args directly as files (excluding the last one)
+    for (int i = 0; i < args.length - 1; i++) {
+        files.add(new File(args[i]))
+    }
+}
 
 if (!files) {
     print 'No TIFF files selected'
     return
 }
 
-// 
+//
 // Set output name
-// 
+//
 
-File fileOutput
-fileOutput = new File(args[1]+'.ome.tif')
-int count = 1 // Ensure we have a unique output name
+File fileOutput = new File(outputName + '.ome.tif')
+int count = 1
 while (fileOutput.exists()) {
-    fileOutput = new File(args[1]+'-'+count+'.ome.tif')
+    fileOutput = new File(outputName + '-' + count + '.ome.tif')
 }
 
-// 
+//
 // Parse image regions & create a sparse server
-// 
+//
 
 print 'Parsing regions from ' + files.size() + " files... \n"
 def builder = new SparseImageServer.Builder()
@@ -97,7 +114,7 @@ server.close()
 
 //
 // Functions
-// 
+//
 
 static ImageRegion parseRegion(File file, int z = 0, int t = 0) {
     if (checkTIFF(file)) {

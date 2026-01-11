@@ -74,8 +74,11 @@ The pipeline, by default, runs Mesmer for segmentation. However, there is also t
   - `mesmer`
   - `cellpose`
 
-Sometimes, your panel may have the DNA stain stored under a name other than DAPI. In these cases, use the `--nuclear_marker` parameter to specify the channel on which to segment nuclei:
-- `--nuclear_marker` (string, default `DAPI`)
+Sometimes, your panel may have the DNA stain stored under a name other than DAPI. In these cases, use the `--nuclear_channel` parameter to specify the channel on which to segment nuclei:
+- `--nuclear_channel` (string, default `DAPI`)
+
+Additionally, you may wish to use a membrane marker in your panel for segmentation alongside the nuclear marker. If this is the case, use `--membrane_channel` to specify the channel to extract for membrane definition:
+- `--membrane_channel` (string)
 
 </details>
 
