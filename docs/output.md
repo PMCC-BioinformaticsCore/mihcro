@@ -1,4 +1,4 @@
-# nf-core/microscopy: Output
+# nf-core/mihcro: Output
 
 ## Introduction
 

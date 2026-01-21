@@ -19,7 +19,7 @@ lint:
 
 template:
   org: nf-core
-  name: microscopy
+  name: mihcro
   description: PMCC microscopy image processing
   author: Song Li
   version: 1.0.0dev

@@ -1,13 +1,13 @@
 <h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/nf-core-microscopy_logo_dark.png">
-    <img alt="nf-core/microscopy" src="docs/images/nf-core-microscopy_logo_light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/nf-core-mihcro_logo_dark.png">
+    <img alt="nf-core/mihcro" src="docs/images/nf-core-mihcro_logo_light.png">
   </picture>
 </h1>
 
 ## Introduction
 
-**nf-core/microscopy** is a bioinformatics pipeline designed to streamline the analysis of multiplex immunohistochemsitry (mIHC) samples.
+**nf-core/mihcro** is a bioinformatics pipeline designed to streamline the analysis of multiplex immunohistochemsitry (mIHC) samples.
 
 The purpose of the pipeline is to convert tiled or stitched multi-channel microscopy images into clean single-cell data. It takes as input a samplesheet, and an optional list of markers present on the panel. It stitches images together if required, performs cell segmentation on the DAPI channel, quantifies outputs into single-cell format and then runs a few basic clustering analyses.
 
@@ -20,7 +20,7 @@ The pipeline accepts three main formats of input:
 * Pre-stitched microscopy images (ome.tiff files), from software such as [QuPath](https://qupath.github.io/) or [HALO (software versions v4.0+)](https://indicalab.com/halo/)
 * Microscopy images output from older version of HALO, which are indica-formatted .tiff files.
 
-![nf-core/microscopy metro diagram](assets/microscopy_metro.png)
+![nf-core/mihcro metro diagram](assets/microscopy_metro.png)
 
 ## Usage
 
@@ -61,7 +61,7 @@ Each row represents a different channel in your images. Note that marker names c
 Now, you can run the pipeline using the following basic parameters:
 
 ```bash
-nextflow run nf-core/microscopy \
+nextflow run nf-core/mihcro \
    -profile <docker/singularity/.../institute> \
    --input example_samplesheet.csv \
    --markers example_markers.csv \
@@ -93,7 +93,7 @@ For more details about the output files and reports, and for examples of output 
 
 ## Credits
 
-nf-core/microscopy was originally written by Song Li.
+nf-core/mihcro was originally written by Song Li.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
   * Patrick Crock
@@ -105,12 +105,12 @@ We thank the following people for their extensive assistance in the development 
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
-For further information or help, don't hesitate to get in touch on the [Slack `#microscopy` channel](https://nfcore.slack.com/channels/microscopy) (you can join with [this invite](https://nf-co.re/join/slack)).
+<!-- For further information or help, don't hesitate to get in touch on the [Slack `#mihcro` channel](https://nfcore.slack.com/channels/mihcro) (you can join with [this invite](https://nf-co.re/join/slack)). -->
 
 ## Citations
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
-<!-- If you use nf-core/microscopy for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
+<!-- If you use nf-core/mihcro for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 
 <!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
 

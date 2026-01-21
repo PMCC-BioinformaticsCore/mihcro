@@ -1,6 +1,6 @@
 {
-    "name": "nf-core/microscopy",
-    "homePage": "https://github.com/nf-core/microscopy",
+    "name": "nf-core/mihcro",
+    "homePage": "https://github.com/nf-core/mihcro",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {
