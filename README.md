@@ -25,7 +25,7 @@ The pipeline accepts three main formats of input:
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+> Given this pipeline is not yet an official nf-core pipeline, you will need to clone the repository prior to running!
 
 First, prepare a samplesheet that follows the format below:
 
@@ -61,7 +61,7 @@ Each row represents a different channel in your images. Note that marker names c
 Now, you can run the pipeline using the following basic parameters:
 
 ```bash
-nextflow run nf-core/mihcro \
+nextflow run mihcro \
    -profile <docker/singularity/.../institute> \
    --input example_samplesheet.csv \
    --markers example_markers.csv \
@@ -123,3 +123,12 @@ You can cite the `nf-core` publication as follows:
 > Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
 >
 > _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x).
+
+The authors would also like to acknowledge the MCMICRO pipeline, after which this pipeline was first modelled:
+
+> **MCMICRO: a scalable, modular image-processing pipeline for multiplexed tissue imaging.**
+>
+> Schapiro, D., Sokolov, A., Yapp, C. et al.
+>
+> _Nat Methods_ 19, 311–315 (2022). https://doi.org/10.1038/s41592-021-01308-y
+
