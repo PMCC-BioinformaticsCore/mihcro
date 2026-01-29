@@ -93,10 +93,11 @@ For more details about the output files and reports, and for examples of output 
 
 ## Credits
 
-nf-core/mihcro was originally written by Song Li.
+This project was supported by **Peter MacCallum Cancer Foundation** - we gratefully acknowledge their financial support, which has been instrumental in the development and maintenance of this software.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
-  * Patrick Crock
+  * Patrick Crock (principal developer)
+  * Song Li (pilot developer)
   * Qing Siaw
   * Xuhan Zhang
 
