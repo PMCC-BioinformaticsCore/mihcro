@@ -98,8 +98,8 @@ This project was supported by **Peter MacCallum Cancer Foundation** - we gratefu
 We thank the following people for their extensive assistance in the development of this pipeline:
   * Patrick Crock (principal developer)
   * Song Li (pilot developer)
-  * Qing Siaw
-  * Xuhan Zhang
+  * Qing Siaw (developer/user training)
+  * Xuhan Zhang (data analyst)
 
 
 ## Contributions and Support
