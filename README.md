@@ -100,6 +100,7 @@ We thank the following people for their extensive assistance in the development 
   * Song Li (pilot developer)
   * Qing Siaw (developer/user training)
   * Xuhan Zhang (data analyst)
+  * Niko Thio (project lead)
 
 
 ## Contributions and Support
