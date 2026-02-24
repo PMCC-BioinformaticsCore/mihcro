@@ -45,6 +45,9 @@ workflow MIHCRO {
 
     // Branch input based on format
     ch_samplesheet
+        .map { meta, tiffs ->
+            [meta + [base_id: meta.id], tiffs]
+        }
         .branch { meta, tiffs ->
             tiles: meta.format == 'tiles'
             stitched: meta.format == 'stitched'

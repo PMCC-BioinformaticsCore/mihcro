@@ -9,7 +9,7 @@ process CELLPOSE {
     path(model)
 
     output:
-    tuple val(meta), path("*masks.tif") ,   emit: mask
+    tuple val(meta), path("*_cellpose.tif") ,   emit: mask
     tuple val(meta), path("*flows.tif") ,   emit: flows, optional: true
     path "versions.yml"                 ,   emit: versions
 
@@ -22,7 +22,7 @@ process CELLPOSE {
         error "I did not manage to create a cellpose module in Conda that works in all OSes. Please use Docker / Singularity / Podman instead."
     }
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
     def model_command = model ? "--pretrained_model $model" : ""
     def membrane_command = params.membrane_channel ? "--chan2 1 --chan 0" : "--chan 0"
     """
@@ -40,6 +40,8 @@ process CELLPOSE {
         $membrane_command \\
         $args
 
+    mv *_cp_masks.tif ${prefix}.tif
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         cellpose: \$(cellpose --version | awk 'NR==2 {print \$3}')
@@ -50,11 +52,11 @@ process CELLPOSE {
     if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
         error "I did not manage to create a cellpose module in Conda that works in all OSes. Please use Docker / Singularity / Podman instead."
     }
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
     def name = image.name
     def base = name.lastIndexOf('.') != -1 ? name[0..name.lastIndexOf('.') - 1] : name
     """
-    touch ${base}_cp_masks.tif
+    touch ${prefix}.tif
 
         cat <<-END_VERSIONS > versions.yml
     "${task.process}":

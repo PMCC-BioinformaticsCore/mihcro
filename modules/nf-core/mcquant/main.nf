@@ -19,7 +19,7 @@ process MCQUANT {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
     def VERSION = '1.5.4' // WARN: Version information not provided by tool on CLI. Please update this string when bumping container versions.
     """
     python /app/CommandSingleCellExtraction.py \
@@ -36,7 +36,7 @@ process MCQUANT {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
     def VERSION = '1.5.4'
     """
     touch ${prefix}.csv

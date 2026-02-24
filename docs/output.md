@@ -26,9 +26,17 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 
 - `reports/`
   - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`
-- `images/`
-  - Output segmentation image: `<SAMPLENAME>_bw_boundaries.tiff`, which contains two channels: one with the processed DAPI, the other with the segmentation borders, both in black-and-white.
-  - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`
+- `image_downscale/`
+  - If downscaling was performed, this directory will contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`
+- `segmentation/`
+  - The segmentation mask output from mesmer (default) `<SAMPLENAME>_mesmer.tif` or cellpose: `<SAMPLENAME>_cellpose.tif`
+  - `overviews/`
+    - Output segmentation image: `<SAMPLENAME>_bw_boundaries.tiff`, which contains two channels: one with the processed DAPI, the other with the segmentation borders, both in black-and-white.
+    - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`
+  - `<SEGMENTATION_METHOD>_mcquant/`
+    - The cell-by-feature matrix output from MCQuant: `<SAMPLENAME>.csv`
+- `seurat_objects/`
+  - The saved seurat objected, clustered, output from the R analysis step: `<SAMPLENAME>_seurat.rds`
 - `dapi_processed/`
   - This directory will only be present if DAPI preprocessing was used in the pipeline.
   - A TIFF image of the DAPI channel post background removal (if executed) and binarisation: `<SAMPLENAME>_dapi_processed.tif`
@@ -43,19 +51,14 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 <details markdown="1">
 <summary>Output files</summary>
 
-- `[SAMPLENAME]/`
-  - `extracted_channel/`
-    - The extracted DAPI channel used in segmentation: `<SAMPLENAME>_dapi.tif`
-    - If AF subtraction method was used in DAPI preprocessing, the extracted channel will also be found: `<SAMPLENAME>_AF.tif`
-  - `mesmer/` or `cellpose/`
-    - The segmentation mask output from mesmer (default): `<SAMPLENAME>_mesmer.tif`
-    - `mcquant/`
-      - The cell-by-feature matrix output from MCQuantL: `<SAMPLENAME>.csv`
-  - `metadata/`
-    - XML metadata extracted from the TIFF image: `<SAMPLENAME>.xml`
-    - If downscaling was performed, this directory will also contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`
-  - `qupath_stitch/`
-    - If input was in the `tiles` format, this directory will be present with the stitched TIFF: `<SAMPLENAME>.ome.tif`
+- `extracted_channels/`
+  - The extracted DAPI channel used in segmentation: `<SAMPLENAME>_dapi.tif`
+  - If AF subtraction method was used in DAPI preprocessing, the extracted channel will also be found: `<SAMPLENAME>_AF.tif`
+  - Likewise, if a cell boundary stain was specified, this chanell will also be present.
+- `metadata/`
+  - XML metadata extracted from the TIFF image: `<SAMPLENAME>.xml`
+- `image_hires/`
+  - This directory will contain the `<SAMPLENAME>.ome.tif` full-resolution image output from tile stitching or legacy HALO conversion - this is the input for the rest of the workflow.
 
 </details>
 
