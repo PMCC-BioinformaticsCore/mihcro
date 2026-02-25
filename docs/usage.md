@@ -80,6 +80,12 @@ Sometimes, your panel may have the DNA stain stored under a name other than DAPI
 Additionally, you may wish to use a membrane marker in your panel for segmentation alongside the nuclear marker. If this is the case, use `--membrane_channel` to specify the channel to extract for membrane definition:
 - `--membrane_channel` (string)
 
+When running Cellpose for segmentation, the default model used is **cyto3**. However, a custom model can be specified.
+- `--cellpose_model` (string): Path to your selected model
+
+In addition, the `diameter` parameter for Cellpose can be specified:
+- `--cellpose_diam` (integer, default `15`)
+
 </details>
 
 <details>

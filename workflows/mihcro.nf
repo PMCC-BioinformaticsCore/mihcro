@@ -164,8 +164,7 @@ workflow MIHCRO {
         }
 
         CELLPOSE (
-            ch_cellpose_input,
-            []
+            ch_cellpose_input
         )
 
         ch_segmentation = CELLPOSE.out.mask
