@@ -44,23 +44,24 @@ Custom models can be trained via the [Cellpose GUI or Python API](https://cellpo
 
 #### Fine-tuning a model
 
-Included with this pipeline is a [python script](assets/helper_scripts/cellpose_resegmentation/run_reseg.py) which will launch a re-segmentation GUI through napari. This script is designed to recognise the outputs of the pipeline, and provide an easy, relatively bug-free method to specify cell borders. Expand the topic below for a full tutorial on the use of this tool:
+Included with this pipeline is a [python script](../assets/helper_scripts/cellpose_resegmentation/run_reseg.py) which will launch a re-segmentation GUI through napari. This script is designed to recognise the outputs of the pipeline, and provide an easy, relatively bug-free method to specify cell borders. Expand the topic below for a full tutorial on the use of this tool:
 
 <details>
 <summary><b>Using the resegmentation script</b></summary>
 
-**Installation**
-* This resegmentation tool should take roughly 5-10 minutes to install.
-* As a prerequisite, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download) if you don't already have it. After installation, restart your terminal (or computer on Windows) to ensure conda is available.
 
-1. **Download or copy** `run_reseg.py` and `environment.yml` from the repository
-2. **Open a terminal** in the directory containing these files
+**Installation**
+
+This resegmentation tool should take roughly 5-10 minutes to install. As a prerequisite, please install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download) if you don't already have it. After installation, restart your terminal (or computer on Windows) to ensure conda is available.
+
+1. **Download or copy** `run_reseg.py` and `environment.yml` from the repository, or navigate there if you have cloned the repository.
+2. **Open a terminal** in the directory containing these files.
 3. **Create the conda environment:**
   ```bash
   conda env create -f environment.yml
   ```
 
-4. **Wait** for installation to complete (~5-10 minutes)
+4. **Wait** for installation to complete (~5-10 minutes).
 
 > **Tip**: You only need to create the environment once. For subsequent runs, just activate the environment and run the script.
 
@@ -76,7 +77,7 @@ Included with this pipeline is a [python script](assets/helper_scripts/cellpose_
    python run_reseg.py
    ```
 
-3. When prompted, **select your pipeline results directory** (the folder containing `image_downscale/`, `segmentation/`, etc.)
+3. When prompted, **select your pipeline results directory** (the folder containing `image_downscale/`, `segmentation/`, etc.).
 4. After loading your images, the tool will open a napari viewer window similar to the one pictured below:
 
 ![Example napari view](images/step0.png)
