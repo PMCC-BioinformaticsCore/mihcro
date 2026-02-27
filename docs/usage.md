@@ -109,7 +109,7 @@ In addition, the `diameter` parameter for Cellpose can be specified:
 
 - `--cellpose_diam` (integer, default: `15`)
 
-For more information on custom models, model retraining, and diameter selection, see the [Cellpose documentation](docs/cellpose.md).
+For more information on custom models, model retraining, and diameter selection, see the [Cellpose documentation](cellpose.md).
 
 </details>
 
