@@ -2,7 +2,21 @@
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+This document describes the usage of the pipeline, including information on inputs and parameters.
+
+- [Inputs](#inputs)
+  - [Samplesheet](#samplesheet)
+  - [Markerfile](#markerfile)
+  - [Output directory](#output-directory)
+  - [Optional pipeline parameters](#optional-pipeline-parameters)
+- [Running the pipeline](#running-the-pipeline)
+  - [Updating the pipeline](#updating-the-pipeline)
+  - [Reproducibility](#reproducibility)
+- [Core Nextflow arguments](#core-nextflow-arguments)
+- [Custom configuration](#custom-configuration)
+- [Running in the background](#running-in-the-background)
+- [Nextflow memory requirements](#nextflow-memory-requirements)
+
 
 ## Inputs
 
@@ -66,10 +80,10 @@ The last required input for the pipeline is the `--outdir` parameter, which is s
 
 ### Optional pipeline parameters
 
-The following parameters are optional — they either have defaults built-in, or refer to optional steps in the pipeline. Click on a topic to expand it for more information.
+The following parameters are optional — they either have defaults built-in, or refer to optional steps in the pipeline. Click on a topic's title to expand it for more information.
 
 <details>
-<summary><h4>Segmentation</h4></summary>
+<summary><b>Segmentation</b></summary>
 
 The pipeline, by default, runs Mesmer for segmentation. However, there is also the option to run Cellpose instead.
 
@@ -85,6 +99,8 @@ Additionally, you may wish to use a membrane marker in your panel for segmentati
 
 - `--membrane_channel` (string)
 
+**Cellpose parameters:**
+
 When running Cellpose for segmentation, the default model used is **cyto3**. However, a custom model can be specified:
 
 - `--cellpose_model` (string): Path to your selected model
@@ -93,10 +109,12 @@ In addition, the `diameter` parameter for Cellpose can be specified:
 
 - `--cellpose_diam` (integer, default: `15`)
 
+For more information on custom models, model retraining, and diameter selection, see the [Cellpose documentation](docs/cellpose.md).
+
 </details>
 
 <details>
-<summary><h4>Downscaling</h4></summary>
+<summary><b>Downscaling</b></summary>
 
 In order to reduce runtime for segmentation in large files, downscaling the resolution of your OME-TIFF file to 1 µm per pixel is recommended. This also regularises the resolution across multiple-sample runs, which can change depending on file format or pre-processing done outside the pipeline.
 
@@ -107,7 +125,7 @@ In order to reduce runtime for segmentation in large files, downscaling the reso
 </details>
 
 <details>
-<summary><h4>Background Correction</h4></summary>
+<summary><b>Background Correction</b></summary>
 
 DAPI preprocessing is the other key optional step in the pipeline. This is designed to make segmentation faster and more effective. There are two main parts to this step:
 

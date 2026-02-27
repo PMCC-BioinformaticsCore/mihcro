@@ -9,9 +9,9 @@
 
 **nf-core/mihcro** is a bioinformatics pipeline designed to streamline the analysis of multiplex immunohistochemistry (mIHC) samples.
 
-The purpose of the pipeline is to convert tiled or stitched multi-channel microscopy images into clean single-cell data. It takes as input a samplesheet, and an optional list of markers present on the panel. It stitches images together if required, performs cell segmentation on the DAPI channel, quantifies outputs into single-cell format and then runs a few basic clustering analyses.
+The purpose of the pipeline is to convert tiled or stitched multi-channel microscopy images into clean single-cell data. It takes as input a samplesheet, and an optional list of markers present on the panel. It stitches images together if required, performs cell segmentation on the nuclear channel, quantifies outputs into single-cell format and then runs a few basic clustering analyses.
 
-The segmentation model to be used can be selected (currently Mesmer is default, and Cellpose is also available). By default, the pipeline performs segmentation on the DAPI marker, but there is also the option to specify a membrane marker with which to segment whole cells. There are also optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1 µm/pixel scale.
+The segmentation model to be used can be selected (currently Mesmer is default, and Cellpose is also available). By default, the pipeline performs segmentation on the nuclear marker, but there is also the option to specify a membrane marker with which to segment whole cells. There are also optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1 µm/pixel scale. In the case of segmentation via Cellpose, model retraining is possible with an attached script, and custom models can be used (see [Cellpose documentation](docs/cellpose.md)).
 
 The pipeline returns a processed TIFF file, a segmented image mask and summary, a cell × feature spreadsheet, as well as an HTML report on the cell × feature data, including segmentation summary statistics, marker intensity summary statistics, and UMAP reduction and clustering.
 
@@ -73,10 +73,13 @@ nextflow run mihcro \
 > [!NOTE]
 > At this stage of development, this pipeline only works with container `-profile` options (e.g. apptainer, docker, singularity).
 
+For more details and further functionality, please refer to the [usage documentation](docs/usage.md).
+
+
+
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
 
-For more details and further functionality, please refer to the [usage documentation](docs/usage.md).
 
 ## Pipeline output
 
