@@ -68,7 +68,7 @@ CD8
 Autofluorescence
 ```
 
-Markers do not need to be listed in any specific order. Note that marker names cannot contain spaces at this time.
+Markers do not need to be listed in any specific order, and you do not need to list every marker. Markers included be best-matched to the markers present in your image file, and only these will be used for downstream analyses. 
 
 ### Output directory
 

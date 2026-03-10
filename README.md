@@ -58,7 +58,7 @@ CD3
 CD11c
 ```
 
-Each row represents a different channel in your images. Note that marker names cannot contain spaces.
+Each row represents a different channel in your images.
 
 Now, you can run the pipeline using the following basic parameters:
 
