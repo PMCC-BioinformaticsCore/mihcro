@@ -10,7 +10,7 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_mihc
 include { QUPATH_STITCH } from '../modules/local/qupath/stitch/main'
 include { BFTOOLS_TIFFMETAXML } from '../modules/local/bftools/tiffmetaxml/main'
 include { INDICA_TIFF_TO_OME } from '../modules/local/halo/indicatifftoome/main.nf'
-include { HANDLE_STITCHED } from '../modules/local/handlestitched/main'
+include { PREPROCESS_IMAGE } from '../modules/local/preprocessimage/main'
 include { EXTRACTIMAGECHANNEL as EXTRACT_DAPI } from '../modules/local/extractimagechannel/main'
 include { EXTRACTIMAGECHANNEL as EXTRACT_AF } from '../modules/local/extractimagechannel/main'
 include { EXTRACTIMAGECHANNEL as EXTRACT_MEMBRANE } from '../modules/local/extractimagechannel/main'
@@ -22,7 +22,6 @@ include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
 include { PREPROCESS_CELLPOSE } from '../modules/local/cellpose/main'
 include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
 
-include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
 include { MCQUANT } from '../modules/nf-core/mcquant/main'
 
 include { RENDER_REPORT } from '../modules/local/qcreportR/main'
@@ -55,7 +54,7 @@ workflow MIHCRO {
         }
         .set { ch_branched }
 
-    // Process each format type
+    // Process special format types
 
     // Stitch tiled input
     stitch_script = "${projectDir}/bin/stitch.groovy"
@@ -64,37 +63,59 @@ workflow MIHCRO {
         ch_branched.tiles
     )
 
-    // Link to tiff from stitched input
-    HANDLE_STITCHED (
-        ch_branched.stitched
-    )
-
     // Process HALO fused input
     INDICA_TIFF_TO_OME (
         ch_branched.fused
     )
 
-    // Combine all processed images
-    ch_images = Channel.empty()
-        .mix(QUPATH_STITCH.out.image)
-        .mix(HANDLE_STITCHED.out.image)
-        .mix(INDICA_TIFF_TO_OME.out.image)
+    // Validate stitched input
+
+    ch_validated_stitched = ch_branched.stitched
+        .map { meta, tiff ->
+            def input_files = tiff instanceof List ? tiff : [tiff]
+
+            if (input_files.size() == 0) {
+                error "ERROR [PREPROCESS_IMAGE]: No files received for sample '${meta.id}'."
+            }
+            if (input_files.size() > 1) {
+                error "ERROR [PREPROCESS_IMAGE]: Multiple files received for sample '${meta.id}'. Expected exactly one file, but found ${input_files.size()}:\n  - ${input_files.join('\n  - ')}"
+            }
+
+            def resolved = input_files[0]
+
+            if (resolved.isDirectory()) {
+                def tiffs = resolved.listFiles().findAll { it.name =~ /(?i)\.ome\.tiff?$|\.tiff?$/ }
+                if (tiffs.size() == 0) {
+                    error "ERROR [PREPROCESS_IMAGE]: Directory '${resolved}' for sample '${meta.id}' contains no TIFF files."
+                }
+                if (tiffs.size() > 1) {
+                    error "ERROR [PREPROCESS_IMAGE]: Directory '${resolved}' for sample '${meta.id}' contains multiple TIFF files. Expected exactly one:\n  - ${tiffs.join('\n  - ')}"
+                }
+                resolved = tiffs[0]
+            }
+
+            [meta, resolved]
+        }
+
+    // Preprocess
+    ch_raw_images = Channel.empty()
+    .mix(QUPATH_STITCH.out.image)
+    .mix(ch_validated_stitched)
+    .mix(INDICA_TIFF_TO_OME.out.image)
+
+    PREPROCESS_IMAGE(ch_raw_images, ch_markers)
 
     ch_versions = Channel.empty()
         .mix(QUPATH_STITCH.out.versions)
-        .mix(HANDLE_STITCHED.out.versions)
         .mix(INDICA_TIFF_TO_OME.out.versions)
+        .mix(PREPROCESS_IMAGE.out.versions)
 
-
-    // Conditional downscaling based on parameter
     if (params.downscale_mode == '1um') {
-        DOWNSCALE_OME_TIFF(
-            ch_images
-        )
+        DOWNSCALE_OME_TIFF(PREPROCESS_IMAGE.out.image)
         ch_processed_images = DOWNSCALE_OME_TIFF.out.downscaled
         ch_versions = ch_versions.mix(DOWNSCALE_OME_TIFF.out.versions)
     } else {
-        ch_processed_images = ch_images
+        ch_processed_images = PREPROCESS_IMAGE.out.image
     }
 
     // Extract XML, DAPI channel from processed images
@@ -175,22 +196,15 @@ workflow MIHCRO {
     }
 
     // Quantification
-    SEPARATEIMAGECHANNELS (
-        ch_processed_images,
-        ch_markers
-    )
-    ch_separatedimg = SEPARATEIMAGECHANNELS.out.image
-        .map { meta, it ->
-            [meta.id, meta, it]
-        }
-    ch_versions = ch_versions.mix(SEPARATEIMAGECHANNELS.out.versions)
+    ch_separatedimg = ch_processed_images
+            .map { meta, it -> [meta.id, meta, it] }
 
-    ch_quant = ch_segmentation
-        .combine( ch_separatedimg, by:0 )
-        .multiMap { meta1, meta2, seg, meta3, img ->
-            image: [meta2, img]
-            mask: [meta2, seg]
-        }
+        ch_quant = ch_segmentation
+            .combine(ch_separatedimg, by: 0)
+            .multiMap { id, meta_seg, seg, meta_img, img ->
+                image: [meta_img, img]
+                mask:  [meta_img, seg]
+            }
 
     MCQUANT (
         ch_quant.image,
