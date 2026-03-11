@@ -3,6 +3,7 @@ process RENDER_REPORT {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}/reports", pattern: "*.html", mode: 'copy'
     publishDir "${params.outdir}/${meta.id}/seurat_objects", pattern: "*_seurat.rds", mode: 'copy'
+    publishDir "${params.outdir}/${meta.id}/cluster_markers", pattern: "*_cluster_mean_intensity.csv", mode: 'copy'
 
     container "ghcr.io/patrickcrock/rmdqc_microscopy:1.0"
 
@@ -14,6 +15,7 @@ process RENDER_REPORT {
     output:
     tuple val(meta), path("*_report.html"), emit: html
     tuple val(meta), path("*_seurat.rds"), emit: seurat
+    path "*_cluster_mean_intensity.csv", emit: cluster_markers
     path "versions.yml", emit: versions
 
     script:

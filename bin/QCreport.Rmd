@@ -1,5 +1,5 @@
 ---
-title: "QC report: `r params$samplename`"
+title: "QC report"
 params:
   samplename:
   cellbyfeature:
@@ -59,6 +59,9 @@ mesmer_marker <- mesmer_data %>% select(CellID, all_of(eff_markers)) %>%
                names_to = "Marker",
                values_to = "Value")
 
+
+mesmer_marker$Marker <- factor(mesmer_marker$Marker, levels = eff_markers)
+
 ```
 
 ```{r, echo=FALSE}
@@ -72,14 +75,15 @@ if (length(flag)>0) {
 }
 ```
 
-# morphology {.tabset}
-## statistic table
-```{r}
+# Morphology {.tabset}
+
+## Basic statistics
+
+```{r, echo=FALSE}
 Morphology_mesmer <- mesmer_data[, c("Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent", "Orientation")]
 
 area_summary <- Morphology_mesmer %>%
   summarise(
-    Detecter = "Mesmer",
     Mean = round(mean(Area),2),
     Median = median(Area),
     SD = round(sd(Area),2),
@@ -87,19 +91,18 @@ area_summary <- Morphology_mesmer %>%
     Max = max(Area)
   )
 
-area_summary %>%
+area_summary %>% mutate(CellCount=(nrow(mesmer_data) %>% prettyNum(big.mark=",")) ) %>% dplyr::select(CellCount, everything()) %>%
   kbl(caption = "Area Statistical Table") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 ## Cell area distribution
-```{r}
-Morphology_mesmer$Detecter   <- "Mesmer"
 
-ggplot(Morphology_mesmer, aes(x = Area, fill = Detecter)) +
+```{r, echo=FALSE}
+
+ggplot(Morphology_mesmer, aes(x = Area)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
-  facet_wrap(~Detecter, scales = "free", ncol = 2) +
   labs(
     title = "Area Distribution",
     x = "Area (µm²)",
@@ -107,49 +110,57 @@ ggplot(Morphology_mesmer, aes(x = Area, fill = Detecter)) +
   )
 
 
+ggplot(Morphology_mesmer, aes(x = Area)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  labs(
+    title = "Area Distribution (log-transformed)",
+    x = "log10(Area (µm²))",
+    y = "Density"
+  ) + scale_x_log10()
+
+
 ```
 
 ## Eccentricity distribution
-```{r}
-ggplot(Morphology_mesmer, aes(x = Eccentricity, fill = Detecter)) +
+```{r, echo=FALSE}
+ggplot(Morphology_mesmer, aes(x = Eccentricity)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
-  facet_wrap(~Detecter, scales = "free", ncol = 2) +
   labs(
     title = "Eccentricity Distribution",
-    x = "Eccentricity (µm²)",
+    x = "Eccentricity",
     y = "Density"
   )
 ```
 
 ## Solidity distribution
-```{r}
-ggplot(Morphology_mesmer, aes(x = Solidity, fill = Detecter)) +
+```{r, echo=FALSE}
+ggplot(Morphology_mesmer, aes(x = Solidity)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
-  facet_wrap(~Detecter, scales = "free", ncol = 2) +
   labs(
     title = "Solidity Distribution",
-    x = "Solidity (µm²)",
+    x = "Solidity",
     y = "Density"
   )
 ```
 
 ## Extent distribution
-```{r}
-ggplot(Morphology_mesmer, aes(x = Extent, fill = Detecter)) +
+```{r, echo=FALSE}
+ggplot(Morphology_mesmer, aes(x = Extent)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
-  facet_wrap(~Detecter, scales = "free", ncol = 2) +
   labs(
     title = "Extent Distribution",
-    x = "Extent (µm²)",
+    x = "Extent",
     y = "Density"
   )
 ```
 
-# descriptive statistics {.tabset}
-## raw
+# Marker descriptive statistics {.tabset}
+
+## Raw
 ```{r, echo=FALSE}
 mesmer_summary <- mesmer_marker %>%
   group_by(Marker) %>%
@@ -160,8 +171,8 @@ mesmer_summary <- mesmer_marker %>%
     Min = min(Value),
     Max = max(Value)
   )
-mesmer_summary %>%
-  kbl(caption = "Statistical Table") %>%
+mesmer_summary %>% arrange(Marker)  %>%
+  kbl(caption = "Channel Intensity (raw)") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
@@ -182,56 +193,87 @@ mesmer_log_summary <- df_clr_mesmer %>%
     Max = max(Value_CLR)
   )
 mesmer_log_summary %>%
-  kbl(caption = "Statistical Table") %>%
+  kbl(caption = "Channel Intensity (CLR-transformed)") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 # Histogram of marker intensity {.tabset}
-## raw
 ```{r, echo=FALSE}
+num.markers = length(eff_markers)
+
+#calculate per figure width is 7/4, and height is 5/3 (the default fig.width=7 and fig.height=5 looks good on 4 by 3 facet plots ).
+## increase fig.width 10/4 since it looks crammy on raw intensity
+eff.fig.width = 10
+eff.fig.height = (5/3) * ceiling((num.markers/4))
+```
+
+## Raw
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height }
 ggplot(mesmer_marker, aes(x = Value, fill = Marker)) +
   geom_density() +
   theme_minimal() +
   facet_wrap(~Marker, scales = "free", ncol = 4) +
   labs(title = "Marker intensity",
-       x = "intensity", y = "density")
+       x = "intensity", y = "density") +
+  NoLegend()
 ```
 
 ## CLR transformation
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height }
 
 ggplot(df_clr_mesmer, aes(x = Value_CLR, fill = Marker)) +
   geom_density() +
   theme_minimal() +
   facet_wrap(~Marker, scales = "free", ncol = 4) +
   labs(title = "Marker intensity",
-       x = "intensity", y = "density")
+       x = "intensity", y = "density") +
+  NoLegend()
+
 ```
 
 # Boxplot {.tabset}
-## raw
+
 ```{r, echo=FALSE}
+# Initial figure size based on 10markers; default width is 7, and default height is 5
+#calculate per figure width is 7/4, and height is 5/3 (the default fig.width=7 and fig.height=5 looks good on 4 by 3 facet plots ).
+## increase fig.width 10/4 since it looks crammy on raw intensity
+eff.fig.width = (7/10) * num.markers
+eff.fig.height = 5
+```
+
+## raw
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height }
 ggplot(mesmer_marker, aes(x = Marker, y = Value, fill = Marker)) +
   geom_boxplot() +
   theme_minimal() +
   labs(title = "Boxplot of intensity distribution",
-       x = "markers", y = "intensity")
+       x = "markers", y = "intensity") +
+  NoLegend() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
 ## CLR transformation
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height }
 
 ggplot(df_clr_mesmer, aes(x = Marker, y = Value_CLR, fill = Marker)) +
   geom_boxplot() +
   theme_minimal() +
   labs(title = "Boxplot of intensity distribution",
-       x = "markers", y = "intensity")
+       x = "markers", y = "intensity") +
+  NoLegend() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
-# correlation between markers {.tabset}
+# Correlation between markers {.tabset}
+
 
 ```{r, echo=FALSE}
+# Initial figure size based on 10markers; default width is 7, and default height is 5
+eff.fig.width = (7/10) * num.markers
+eff.fig.height = (5/10) * num.markers
+```
 
+```{r, echo=FALSE, warning=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height }
 mesmer_corr_matrix <- mesmer_data %>% select(all_of(eff_markers)) %>%
   cor() %>%
   round(digits=2)
@@ -242,8 +284,15 @@ ggcorrplot(mesmer_corr_matrix, hc.order =FALSE,
 ```
 
 # QQ plot {.tabset}
-## raw
+
 ```{r, echo=FALSE}
+# Initial figure size based on 10markers; default width is 7, and default height is 5
+eff.fig.width = 7
+eff.fig.height = (5/3) * ceiling(num.markers/4)
+```
+
+## raw
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
 n_cells <- n_distinct(mesmer_marker$CellID)
 if (n_cells > 100000) {
   print("downsampling large dataset...")
@@ -258,11 +307,11 @@ ggplot(mesmer_marker, aes(sample = Value, fill = Marker, color = Marker)) +
   theme_minimal() +
   facet_wrap(~Marker, scales = "free", ncol = 4) +
   labs(title = "QQ plot",
-       x = "Theoretical Quantiles", y = "Sample Quantiles")
+       x = "Theoretical Quantiles", y = "Sample Quantiles") + NoLegend()
 ```
 
 ## CLR transformation
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
 
 ggplot(df_clr_mesmer, aes(sample = Value_CLR, color = Marker)) +
   stat_qq() +
@@ -360,13 +409,19 @@ saveRDS(seu_mesmer, file = seurat_output)
 discrete.pal <- c("#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990", "#dcbeff", "#9a6324", "#fffac8", "#800000", "#aaffc3", "#808000", "#ffd8b1", "#000075", "#a9a9a9",
                   "#993F00", "#4C005C", "#005C31", "#2BCE48", "#94FFB5", "#C20088", "#FFA405", "#5EF1F2", "#00998F", "lightgrey")
 
+names(discrete.pal) = seq(0,length(discrete.pal)-1) %>% as.character()
 ```
 
 
-## resolution = 0.25
 
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
+
+```{r, echo = FALSE, include=FALSE}
 resolution=0.25
+```
+
+## resolution = `r resolution`
+
+```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
@@ -381,7 +436,7 @@ if (use_sketch) {
 centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1, , cols=discrete.pal) + scale_y_reverse()
+ImageDimPlot(seu_mesmer, size=1, cols=discrete.pal) + scale_y_reverse()
 ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
@@ -391,7 +446,86 @@ ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_r
 #  coord_fixed() + # coordinate ratio: 1:1
 #  scale_y_reverse() +
 #  theme_minimal()
+```
 
+#### Cluster sizes
+
+```{r, echo = FALSE}
+adata=data.frame(cluster = seu_mesmer[[paste0("PROT_snn_res.", resolution)]] %>% dplyr::pull()) %>%
+        group_by(cluster) %>%
+        summarise(cell.count=n()) %>% arrange(desc(cell.count))
+cell.total=sum(adata$cell.count)
+adata = adata %>% mutate(pct=100*cell.count/cell.total, alabel=paste0(round(pct,2),"%"))
+
+
+ggplot(adata, aes(x = cell.count, y = reorder(cluster, cell.count))) +
+  geom_col(fill = "steelblue") +
+  # Add the percentage text next to the bars
+  geom_text(aes(label = alabel),
+            hjust = -0.2,    # Adjust horizontal position (negative moves it right)
+            size = 3.5) +    # Adjust text size
+  # Expand the x-axis limits slightly to ensure text isn't cut off
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x="Cell count", y="Cluster")
+
+```
+
+
+```{r, echo = FALSE, include=FALSE}
+## heatmap
+avg <- AverageExpression(
+  seu_mesmer,
+  assays = "PROT",
+  group.by = "seurat_clusters",
+  slot = "data"
+)$PROT
+
+fpath <- paste0(samplename, "_res.", resolution, "_cluster_mean_intensity.csv")
+sel.df = as.data.frame(avg) %>% rownames_to_column("Marker")
+write.table(sel.df, file=fpath, sep="\t", quote = FALSE,  row.names = FALSE)
+```
+
+#### Average intensity (scaled row-wise)
+
+
+```{r, echo = FALSE, warning=FALSE}
+#pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "row")
+```
+
+
+```{r, echo=FALSE}
+# width is 10, and height is 10
+# approx is based on markers, 21 clusters looks fine on the width 10. height per plot is 10/3
+
+# calculate how many clusters*markers, per 21blocks of cluster to determine #plot per column
+numClusters = ncol(avg)
+numMarkers =  nrow(avg)
+
+eff.chunk = max(numClusters, 21)
+numPlotsPerRow = ceiling(eff.chunk/numClusters)
+
+eff.fig.width = (numPlotsPerRow * numMarkers) * (10/21)
+eff.fig.height = ceiling(num.markers/numPlotsPerRow) * (10/3)
+```
+
+
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
+## violin plot
+
+VlnPlot(
+  seu_mesmer,
+  features = marker_cols,
+  group.by = "seurat_clusters",
+  pt.size = 0,
+  ncol = numPlotsPerRow,
+  same.y.lims = TRUE,
+  cols=discrete.pal
+)
+```
+
+```{r, echo = FALSE, include=FALSE}
 ## heatmap
 avg <- AverageExpression(
   seu_mesmer,
@@ -399,26 +533,29 @@ avg <- AverageExpression(
   group.by = "seurat_clusters",
   slot = "scale.data"
 )$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "column")
 
-## violet plot
+```
 
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE,
-  cols=discrete.pal
-)
+#### Average of scaled-intensity (color scaled column-wise)
+
+```
+Scaled-intensity centers and scales each marker's intensity.
+Heatmap color is then based on the scaled column, which may be useful to pinpoint which markers are outstanding markers in each cluster.
+```
+
+```{r, echo = FALSE, warning=FALSE}
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "column")
+
 ```
 
 
-## resolution = 0.5
-
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
+```{r, echo = FALSE, include=FALSE}
 resolution=0.5
+```
+
+## resolution = `r resolution`
+
+```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
@@ -433,7 +570,7 @@ if (use_sketch) {
 centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1, , cols=discrete.pal) + scale_y_reverse()
+ImageDimPlot(seu_mesmer, size=1, cols=discrete.pal) + scale_y_reverse()
 ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
@@ -443,7 +580,87 @@ ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_r
 #  coord_fixed() + # coordinate ratio: 1:1
 #  scale_y_reverse() +
 #  theme_minimal()
+```
 
+#### Cluster sizes
+
+
+```{r, echo = FALSE}
+adata=data.frame(cluster = seu_mesmer[[paste0("PROT_snn_res.", resolution)]] %>% dplyr::pull()) %>%
+        group_by(cluster) %>%
+        summarise(cell.count=n()) %>% arrange(desc(cell.count))
+cell.total=sum(adata$cell.count)
+adata = adata %>% mutate(pct=100*cell.count/cell.total, alabel=paste0(round(pct,2),"%"))
+
+
+ggplot(adata, aes(x = cell.count, y = reorder(cluster, cell.count))) +
+  geom_col(fill = "steelblue") +
+  # Add the percentage text next to the bars
+  geom_text(aes(label = alabel),
+            hjust = -0.2,    # Adjust horizontal position (negative moves it right)
+            size = 3.5) +    # Adjust text size
+  # Expand the x-axis limits slightly to ensure text isn't cut off
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x="Cell count", y="Cluster")
+
+```
+
+
+```{r, echo = FALSE, include=FALSE}
+## heatmap
+avg <- AverageExpression(
+  seu_mesmer,
+  assays = "PROT",
+  group.by = "seurat_clusters",
+  slot = "data"
+)$PROT
+
+fpath <- paste0(samplename, "_res.", resolution, "_cluster_mean_intensity.csv")
+sel.df = as.data.frame(avg) %>% rownames_to_column("Marker")
+write.table(sel.df, file=fpath, sep="\t", quote = FALSE,  row.names = FALSE)
+```
+
+#### Average intensity (scaled row-wise)
+
+
+```{r, echo = FALSE, warning=FALSE}
+#pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "row")
+```
+
+
+```{r, echo=FALSE}
+# width is 10, and height is 10
+# approx is based on markers, 21 clusters looks fine on the width 10. height per plot is 10/3
+
+# calculate how many clusters*markers, per 21blocks of cluster to determine #plot per column
+numClusters = ncol(avg)
+numMarkers =  nrow(avg)
+
+eff.chunk = max(numClusters, 21)
+numPlotsPerRow = ceiling(eff.chunk/numClusters)
+
+eff.fig.width = (numPlotsPerRow * numMarkers) * (10/21)
+eff.fig.height = ceiling(num.markers/numPlotsPerRow) * (10/3)
+```
+
+
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
+## violin plot
+
+VlnPlot(
+  seu_mesmer,
+  features = marker_cols,
+  group.by = "seurat_clusters",
+  pt.size = 0,
+  ncol = numPlotsPerRow,
+  same.y.lims = TRUE,
+  cols=discrete.pal
+)
+```
+
+```{r, echo = FALSE, include=FALSE}
 ## heatmap
 avg <- AverageExpression(
   seu_mesmer,
@@ -451,79 +668,28 @@ avg <- AverageExpression(
   group.by = "seurat_clusters",
   slot = "scale.data"
 )$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "column")
 
-## violet plot
-
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE,
-  cols=discrete.pal
-)
 ```
 
+#### Average of scaled-intensity (color scaled column-wise)
 
-## resolution = 0.75
+```
+Scaled-intensity centers and scales each marker's intensity.
+Heatmap color is then based on the scaled column, which may be useful to pinpoint which markers are outstanding markers in each cluster.
+```
 
-```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
+```{r, echo = FALSE, warning=FALSE}
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "column")
+
+```
+
+```{r, echo = FALSE, include=FALSE}
 resolution=0.75
-seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
-Idents(seu_mesmer) <- "seurat_clusters"
-# visualization
-## umap
-umap_red <- if(use_sketch) "umap.sketch" else "umap"
-if (use_sketch) {
-  DimPlot(seu_mesmer, reduction = umap_red, label = TRUE, cols=discrete.pal)
-} else {
-  DimPlot(seu_mesmer, reduction = umap_red, label = TRUE, cols=discrete.pal)
-}
-## tissue image
-centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
-ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
-seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1, , cols=discrete.pal) + scale_y_reverse()
-ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
-
-#df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
-#df_plot=seu_mesmer[[]]
-#ggplot(df_plot, aes(x = X_centroid, y = Y_centroid, color = res_0.2)) +
-#  geom_point(size = 0.6) +
-#  coord_fixed() + # coordinate ratio: 1:1
-#  scale_y_reverse() +
-#  theme_minimal()
-
-## heatmap
-avg <- AverageExpression(
-  seu_mesmer,
-  assays = "PROT",
-  group.by = "seurat_clusters",
-  slot = "scale.data"
-)$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "column")
-
-## violet plot
-
-VlnPlot(
-  seu_mesmer,
-  features = marker_cols,
-  group.by = "seurat_clusters",
-  pt.size = 0,
-  ncol = 3,
-  same.y.lims = TRUE,
-  cols=discrete.pal
-)
 ```
 
-
-## resolution = 1
-
+## resolution = `r resolution`
 
 ```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
-resolution=1
 seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
 Idents(seu_mesmer) <- "seurat_clusters"
 # visualization
@@ -538,7 +704,7 @@ if (use_sketch) {
 centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
 ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 seu_mesmer[["myfov"]]=ff
-ImageDimPlot(seu_mesmer, size=1, , cols=discrete.pal) + scale_y_reverse()
+ImageDimPlot(seu_mesmer, size=1, cols=discrete.pal) + scale_y_reverse()
 ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
 
 #df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
@@ -548,7 +714,87 @@ ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_r
 #  coord_fixed() + # coordinate ratio: 1:1
 #  scale_y_reverse() +
 #  theme_minimal()
+```
 
+#### Cluster sizes
+
+
+```{r, echo = FALSE}
+adata=data.frame(cluster = seu_mesmer[[paste0("PROT_snn_res.", resolution)]] %>% dplyr::pull()) %>%
+        group_by(cluster) %>%
+        summarise(cell.count=n()) %>% arrange(desc(cell.count))
+cell.total=sum(adata$cell.count)
+adata = adata %>% mutate(pct=100*cell.count/cell.total, alabel=paste0(round(pct,2),"%"))
+
+
+ggplot(adata, aes(x = cell.count, y = reorder(cluster, cell.count))) +
+  geom_col(fill = "steelblue") +
+  # Add the percentage text next to the bars
+  geom_text(aes(label = alabel),
+            hjust = -0.2,    # Adjust horizontal position (negative moves it right)
+            size = 3.5) +    # Adjust text size
+  # Expand the x-axis limits slightly to ensure text isn't cut off
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x="Cell count", y="Cluster")
+
+```
+
+
+```{r, echo = FALSE, include=FALSE}
+## heatmap
+avg <- AverageExpression(
+  seu_mesmer,
+  assays = "PROT",
+  group.by = "seurat_clusters",
+  slot = "data"
+)$PROT
+
+fpath <- paste0(samplename, "_res.", resolution, "_cluster_mean_intensity.csv")
+sel.df = as.data.frame(avg) %>% rownames_to_column("Marker")
+write.table(sel.df, file=fpath, sep="\t", quote = FALSE,  row.names = FALSE)
+```
+
+#### Average intensity (scaled row-wise)
+
+
+```{r, echo = FALSE, warning=FALSE}
+#pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "row")
+```
+
+
+```{r, echo=FALSE}
+# width is 10, and height is 10
+# approx is based on markers, 21 clusters looks fine on the width 10. height per plot is 10/3
+
+# calculate how many clusters*markers, per 21blocks of cluster to determine #plot per column
+numClusters = ncol(avg)
+numMarkers =  nrow(avg)
+
+eff.chunk = max(numClusters, 21)
+numPlotsPerRow = ceiling(eff.chunk/numClusters)
+
+eff.fig.width = (numPlotsPerRow * numMarkers) * (10/21)
+eff.fig.height = ceiling(num.markers/numPlotsPerRow) * (10/3)
+```
+
+
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
+## violin plot
+
+VlnPlot(
+  seu_mesmer,
+  features = marker_cols,
+  group.by = "seurat_clusters",
+  pt.size = 0,
+  ncol = numPlotsPerRow,
+  same.y.lims = TRUE,
+  cols=discrete.pal
+)
+```
+
+```{r, echo = FALSE, include=FALSE}
 ## heatmap
 avg <- AverageExpression(
   seu_mesmer,
@@ -556,19 +802,154 @@ avg <- AverageExpression(
   group.by = "seurat_clusters",
   slot = "scale.data"
 )$PROT
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "column")
 
-## violet plot
+```
+
+#### Average of scaled-intensity (color scaled column-wise)
+
+```
+Scaled-intensity centers and scales each marker's intensity.
+Heatmap color is then based on the scaled column, which may be useful to pinpoint which markers are outstanding markers in each cluster.
+```
+
+```{r, echo = FALSE, warning=FALSE}
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "column")
+
+```
+
+```{r, echo = FALSE, include=FALSE}
+resolution=1
+```
+
+## resolution = `r resolution`
+
+```{r, echo = FALSE, warning=FALSE, fig.dim=c(10,10)}
+seu_mesmer$seurat_clusters <- seu_mesmer[[paste0("PROT_snn_res.", resolution)]]
+Idents(seu_mesmer) <- "seurat_clusters"
+# visualization
+## umap
+umap_red <- if(use_sketch) "umap.sketch" else "umap"
+if (use_sketch) {
+  DimPlot(seu_mesmer, reduction = umap_red, label = TRUE, cols=discrete.pal)
+} else {
+  DimPlot(seu_mesmer, reduction = umap_red, label = TRUE, cols=discrete.pal)
+}
+## tissue image
+centroids = seu_mesmer[[]] %>% rownames_to_column("bc") %>% mutate(y=X_centroid, x=Y_centroid, cell=bc) %>% dplyr::select(x,y,cell)
+ff=CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
+seu_mesmer[["myfov"]]=ff
+ImageDimPlot(seu_mesmer, size=1, cols=discrete.pal) + scale_y_reverse()
+ImageFeaturePlot(seu_mesmer, features = marker_cols, combine = TRUE) & scale_y_reverse() & theme(plot.background = element_rect(fill="black"))
+
+#df_plot <- FetchData(seu_mesmer, vars = c("X_centroid","Y_centroid","seurat_clusters")) # extract variables
+#df_plot=seu_mesmer[[]]
+#ggplot(df_plot, aes(x = X_centroid, y = Y_centroid, color = res_0.2)) +
+#  geom_point(size = 0.6) +
+#  coord_fixed() + # coordinate ratio: 1:1
+#  scale_y_reverse() +
+#  theme_minimal()
+```
+
+#### Cluster sizes
+
+
+```{r, echo = FALSE}
+adata=data.frame(cluster = seu_mesmer[[paste0("PROT_snn_res.", resolution)]] %>% dplyr::pull()) %>%
+        group_by(cluster) %>%
+        summarise(cell.count=n()) %>% arrange(desc(cell.count))
+cell.total=sum(adata$cell.count)
+adata = adata %>% mutate(pct=100*cell.count/cell.total, alabel=paste0(round(pct,2),"%"))
+
+
+ggplot(adata, aes(x = cell.count, y = reorder(cluster, cell.count))) +
+  geom_col(fill = "steelblue") +
+  # Add the percentage text next to the bars
+  geom_text(aes(label = alabel),
+            hjust = -0.2,    # Adjust horizontal position (negative moves it right)
+            size = 3.5) +    # Adjust text size
+  # Expand the x-axis limits slightly to ensure text isn't cut off
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x="Cell count", y="Cluster")
+
+```
+
+
+```{r, echo = FALSE, include=FALSE}
+## heatmap
+avg <- AverageExpression(
+  seu_mesmer,
+  assays = "PROT",
+  group.by = "seurat_clusters",
+  slot = "data"
+)$PROT
+
+fpath <- paste0(samplename, "_res.", resolution, "_cluster_mean_intensity.csv")
+sel.df = as.data.frame(avg) %>% rownames_to_column("Marker")
+write.table(sel.df, file=fpath, sep="\t", quote = FALSE,  row.names = FALSE)
+```
+
+#### Average intensity (scaled row-wise)
+
+
+```{r, echo = FALSE, warning=FALSE}
+#pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = levels(Idents(seu_mesmer)), scale = "row")
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "row")
+```
+
+
+```{r, echo=FALSE}
+# width is 10, and height is 10
+# approx is based on markers, 21 clusters looks fine on the width 10. height per plot is 10/3
+
+# calculate how many clusters*markers, per 21blocks of cluster to determine #plot per column
+numClusters = ncol(avg)
+numMarkers =  nrow(avg)
+
+eff.chunk = max(numClusters, 21)
+numPlotsPerRow = ceiling(eff.chunk/numClusters)
+
+eff.fig.width = (numPlotsPerRow * numMarkers) * (10/21)
+eff.fig.height = ceiling(num.markers/numPlotsPerRow) * (10/3)
+```
+
+
+```{r, echo=FALSE, fig.width=eff.fig.width, fig.height=eff.fig.height}
+## violin plot
 
 VlnPlot(
   seu_mesmer,
   features = marker_cols,
   group.by = "seurat_clusters",
   pt.size = 0,
-  ncol = 3,
+  ncol = numPlotsPerRow,
   same.y.lims = TRUE,
   cols=discrete.pal
 )
 ```
+
+```{r, echo = FALSE, include=FALSE}
+## heatmap
+avg <- AverageExpression(
+  seu_mesmer,
+  assays = "PROT",
+  group.by = "seurat_clusters",
+  slot = "scale.data"
+)$PROT
+
+```
+
+#### Average of scaled-intensity (color scaled column-wise)
+
+```
+Scaled-intensity centers and scales each marker's intensity.
+Heatmap color is then based on the scaled column, which may be useful to pinpoint which markers are outstanding markers in each cluster.
+```
+
+```{r, echo = FALSE, warning=FALSE}
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = colnames(avg) %>% gsub(pattern="^g", replacement=""), scale = "column")
+
+```
+
 
 

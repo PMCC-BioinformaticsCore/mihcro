@@ -34,6 +34,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and produces th
       - The cell-by-feature matrix output from MCQuant: `<SAMPLENAME>.csv`
   - `seurat_objects/`
     - The saved Seurat object, clustered, output from the R analysis step: `<SAMPLENAME>_seurat.rds`
+  - `cluster_markers/`
+    - One CSV per clustering resolution (0.25, 0.5, 0.75, 1), containing mean intensity for each marker per cluster: `<SAMPLENAME>_<RESOLUTION>_cluster_mean_intensity.csv`
   - `dapi_processed/`
     - This directory will only be present if DAPI preprocessing was used in the pipeline.
     - A TIFF image of the DAPI channel post background removal (if executed) and binarisation: `<SAMPLENAME>_dapi_processed.tif`

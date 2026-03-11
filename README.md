@@ -13,7 +13,7 @@ The purpose of the pipeline is to convert tiled or stitched multi-channel micros
 
 The segmentation model to be used can be selected (currently Mesmer is default, and Cellpose is also available). By default, the pipeline performs segmentation on the nuclear marker, but there is also the option to specify a membrane marker with which to segment whole cells. There are also optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1 µm/pixel scale. In the case of segmentation via Cellpose, model retraining is possible with an attached script, and custom models can be used (see [Cellpose documentation](docs/cellpose.md)).
 
-The pipeline returns a processed TIFF file, a segmented image mask and summary, a cell × feature spreadsheet, as well as an HTML report on the cell × feature data, including segmentation summary statistics, marker intensity summary statistics, and UMAP reduction and clustering.
+The pipeline returns a processed TIFF file, a segmented image mask and summary, a cell × feature spreadsheet, as well as an HTML report on the cell × feature data, including segmentation summary statistics, marker intensity summary statistics, and UMAP reduction and clustering. It also returns a Seurat object with clustering at several resolutions and reduction information, as well as CSVs detailing mean intensity per marker per cluster.
 
 The pipeline accepts three main formats of input:
 
@@ -94,6 +94,7 @@ The pipeline returns:
   - UMAP reduction and clustering
   - Overviews of marker signal in clusters
   - Spatial map of marker signal and cluster assignment
+- A Seurat object RDS file contianing clustering and reduction data, as well as CSV files detailing mean marker intensity for each cluster.
 
 For more details about the output files and reports, and for examples of output from a full dataset, please refer to the [output documentation](docs/output.md).
 
