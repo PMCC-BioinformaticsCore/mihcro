@@ -134,7 +134,7 @@ A full list of available Cellpose CLI arguments can be found in the [Cellpose do
 
 ## Two-channel segmentation
 
-When `--membrane_channel` is specified, the pipeline runs a preprocessing step (`PREPROCESS_CELLPOSE`) prior to segmentation. This step stacks the membrane and nuclear channel images into a two-channel TIFF in the order `[membrane, nuclear]`, which is then passed to Cellpose with the following channel configuration:
+When `--membrane_channel` is specified, each image patch is written as a two-channel TIFF in the order `[membrane, nuclear]` (in `MAKE_PATCHES`), which is then passed to Cellpose with the following channel configuration:
 
 - Channel 0 (`--chan 0`): membrane channel — the primary channel Cellpose segments around
 - Channel 1 (`--chan2 1`): nuclear channel — used as a localisation guide for cell centres
@@ -148,11 +148,11 @@ To enable two-channel segmentation, set both `--segmentation` and `--membrane_ch
 --membrane_channel 'PanCK'
 ```
 
-The channel name must match exactly what is listed in your markerfile.
+The channel name is matched against the channel names in your image; it does not need to be listed in your markerfile.
 
 ## Notes and limitations
 
 - **Conda is not supported.** The Cellpose module requires a container profile. Attempting to run with `conda` or `mamba` will produce an error.
 - **Model bundling.** The `cyto3` model is bundled inside the container rather than downloaded at runtime, which improves reproducibility and avoids network dependency during execution.
 - **Thread control.** The process sets `OMP_NUM_THREADS` and `MKL_NUM_THREADS` to match the number of CPUs allocated to the task, which can be tuned via your resource configuration if needed.
-- **GPU acceleration.** The default container does not enable GPU support. If GPU acceleration is required, a custom container with CUDA support would need to be specified via `task.ext.container` or an equivalent config override.
+- **GPU acceleration.** Run with `-profile gpu` (alongside your container profile) to pass `--use_gpu` to Cellpose and request one GPU per patch task (`accelerator 1`). If your cluster needs a specific GPU queue or partition, set it for `CELLPOSE` in your institutional config. Check that the Cellpose container can see the GPU (`python -c "import torch; print(torch.cuda.is_available())"`); if it prints `False`, the container is a CPU-only build and a CUDA-enabled Cellpose container should be set with a `withName: 'CELLPOSE' { container = '...' }` override.

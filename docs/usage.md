@@ -97,7 +97,7 @@ CD8
 Autofluorescence
 ```
 
-Markers do not need to be listed in any specific order, and you do not need to list every marker. Markers included be best-matched to the markers present in your image file, and only these will be used for downstream analyses. 
+Markers do not need to be listed in any specific order, and you do not need to list every marker. Markers included will be best-matched to the channels present in your image file, and only these will be used for downstream analyses. The nuclear, membrane and autofluorescence channels (`--nuclear_channel`, `--membrane_channel`, `--af_channel`) are matched against the image separately, so they do not need to be in the markerfile.
 
 ### Output directory
 
@@ -164,7 +164,7 @@ When all patches are done, the patch masks are stitched back into a single mask.
 <details>
 <summary><b>Downscaling</b></summary>
 
-In order to reduce runtime for segmentation in large files, downscaling the resolution of your OME-TIFF file to 1 µm per pixel is recommended. This also regularises the resolution across multiple-sample runs, which can change depending on file format or pre-processing done outside the pipeline.
+In order to reduce runtime for segmentation in large files, downscaling the resolution of your OME-TIFF file to 1 µm per pixel is recommended. This also regularises the resolution across multiple-sample runs, which can change depending on file format or pre-processing done outside the pipeline. If the input OME-TIFF is pyramidal, the closest pyramid level is read directly (only the channels that are needed), which keeps this step fast and memory-light for large slides.
 
 - `--downscale_mode` (string, default: `1um`): Image downscaling mode. Options:
   - `1um`: Downscale to 1 pixel per 1 µm (recommended)
@@ -199,7 +199,7 @@ An overview of the options available for this step:
 
 - `--dapi_bg_sigma` (number, default: `50`): Sigma parameter for the `gaussian` method.
 - `--dapi_bg_radius` (integer, default: `50`): Radius parameter for the `rollingball` method.
-- `--af_channel` (string): Name of the autofluorescence channel (present in your `markerfile`) for the `af` method.
+- `--af_channel` (string): Name of the autofluorescence channel in your image, for the `af` method.
 
 **Threshold adjustment:**
 

@@ -24,7 +24,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and produces th
   - `reports/`
     - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`. If the sample has a region of interest, the report includes a *Regions of interest* section with cell counts, density, marker intensity and cluster composition per annotation class.
   - `image_downscale/`
-    - If downscaling was performed, this directory will contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`
+    - The processed image used for segmentation and quantification, containing the markerfile channels at 1 µm/pixel: `<SAMPLENAME>.downscaled.ome.tiff`
+    - With `--downscale_mode none` this is instead written at the input resolution to `image_processed/<SAMPLENAME>.processed.ome.tiff`
   - `segmentation/`
     - The whole-image segmentation mask from Mesmer (default): `<SAMPLENAME>_mesmer.tif`, or Cellpose: `<SAMPLENAME>_cellpose.tif`. Segmentation runs per patch, and the patch masks are resolved into this single mask.
     - `overviews/`
@@ -65,7 +66,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and produces th
     - `<SAMPLENAME>_patches.csv`: the patch grid, with the window each patch was cropped to and whether it was segmented or skipped.
     - `<SAMPLENAME>_patches.png`: overview of segmented (green) and skipped (red) patches over the DAPI image.
   - `metadata/`
-    - XML metadata extracted from the TIFF image: `<SAMPLENAME>.xml`
+    - OME-XML metadata of the processed image: `<SAMPLENAME>.xml`
+    - Scale metadata (input and output pixel size, pyramid level and downsampling factor used): `<SAMPLENAME>.json`
   - `image_hires/`
     - This directory will contain the `<SAMPLENAME>.ome.tif` full-resolution image output from tile stitching or legacy HALO conversion — this is the input for the rest of the workflow.
 

@@ -20,6 +20,15 @@ Major update to nfcore/microscopy. Added ROI specification, and patch-wise segme
   * ROI masks are published in `<sample>/roi/` for downstream masking.
 * Automatic tissue detection for samples without a GeoJSON, so background patches are skipped (`--tissue_detection`).
 * ROI outline drawn in green on the RGB segmentation overlay.
+* Optional GPU acceleration for Cellpose with `-profile gpu` (`--use_gpu`, one GPU per patch task).
+
+### `Changed`
+
+* Image preparation is now a single `PREPROCESS_IMAGE` step: it reads the closest pyramid level of the input and only the needed channels, downsamples, and writes the processed image, OME-XML, scale metadata and the nuclear / membrane / AF channels in one pass. This replaces `DOWNSCALE_OME_TIFF`, `BFTOOLS_TIFFMETAXML` and `EXTRACT_DAPI` / `EXTRACT_AF` / `EXTRACT_MEMBRANE`, and no longer writes a full-resolution intermediate image. Output files are unchanged, except `metadata/` no longer holds a duplicate copy of the processed image.
+* The nuclear, membrane and AF channels no longer need to be listed in the markerfile.
+* `PREPROCESS_CELLPOSE` removed: for two-channel Cellpose, `MAKE_PATCHES` writes each patch as `[membrane, nuclear]`.
+* Stitched/fused inputs are checked to be a single TIFF during samplesheet validation.
+* `RESOLVE_PATCHES` requests 1 CPU / 16 GB instead of `process_medium`.
 
 ### `Fixed`
 
