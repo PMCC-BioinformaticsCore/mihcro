@@ -1,7 +1,9 @@
 process RENDER_REPORT {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/reports", pattern: "*.html", mode: 'copy'
+    publishDir "${params.outdir}/${meta.id}/reports", pattern: "*.html", mode: 'copy'
+    publishDir "${params.outdir}/${meta.id}/seurat_objects", pattern: "*_seurat.rds", mode: 'copy'
+    publishDir "${params.outdir}/${meta.id}/cluster_markers", pattern: "*_cluster_mean_intensity.csv", mode: 'copy'
 
     container "ghcr.io/patrickcrock/rmdqc_microscopy:1.0"
 
@@ -12,6 +14,8 @@ process RENDER_REPORT {
 
     output:
     tuple val(meta), path("*_report.html"), emit: html
+    tuple val(meta), path("*_seurat.rds"), emit: seurat
+    path "*_cluster_mean_intensity.csv", emit: cluster_markers
     path "versions.yml", emit: versions
 
     script:
@@ -38,6 +42,8 @@ process RENDER_REPORT {
     def VERSION='1.0' // Container version
     """
     touch '${prefix}_report.html'
+    touch '${prefix}_seurat.rds'
+    touch '${prefix}_res.0.5_cluster_mean_intensity.csv'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

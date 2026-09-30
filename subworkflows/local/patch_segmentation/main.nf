@@ -48,7 +48,7 @@ workflow PATCH_SEGMENTATION {
 
     } else if (params.segmentation == 'cellpose') {
         // Multi-channel (membrane + nuclear) input is already combined into the image before patching
-        CELLPOSE ( ch_patches.map { meta, image, membrane -> [ meta, image ] }, [] )
+        CELLPOSE ( ch_patches.map { meta, image, membrane -> [ meta, image ] } )
         ch_patch_masks = CELLPOSE.out.mask
         ch_versions = ch_versions.mix(CELLPOSE.out.versions.first())
     }

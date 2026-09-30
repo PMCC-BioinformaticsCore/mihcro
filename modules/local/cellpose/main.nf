@@ -6,10 +6,9 @@ process CELLPOSE {
 
     input:
     tuple val(meta), path(image)
-    path(model)
 
     output:
-    tuple val(meta), path("*masks.tif") ,   emit: mask
+    tuple val(meta), path("*_cellpose.tif") ,   emit: mask
     tuple val(meta), path("*flows.tif") ,   emit: flows, optional: true
     path "versions.yml"                 ,   emit: versions
 
@@ -21,10 +20,17 @@ process CELLPOSE {
     if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
         error "I did not manage to create a cellpose module in Conda that works in all OSes. Please use Docker / Singularity / Podman instead."
     }
+
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def model_command = model ? "--pretrained_model $model" : ""
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
+    def model_command = params.cellpose_model
+        ? "--pretrained_model ${params.cellpose_model}"
+        : "--pretrained_model '${projectDir}/bin/cyto3'"
+    def diam_command = params.cellpose_diam
+        ? "--diameter ${params.cellpose_diam}"
+        : ''
     def membrane_command = params.membrane_channel ? "--chan2 1 --chan 0" : "--chan 0"
+
     """
     export OMP_NUM_THREADS=${task.cpus}
     export MKL_NUM_THREADS=${task.cpus}
@@ -37,8 +43,11 @@ process CELLPOSE {
         --image_path $image \\
         --save_tif \\
         $model_command \\
+        $diam_command \\
         $membrane_command \\
         $args
+
+    mv *_cp_masks.tif ${prefix}.tif
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -50,11 +59,11 @@ process CELLPOSE {
     if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
         error "I did not manage to create a cellpose module in Conda that works in all OSes. Please use Docker / Singularity / Podman instead."
     }
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.base_id}"
     def name = image.name
     def base = name.lastIndexOf('.') != -1 ? name[0..name.lastIndexOf('.') - 1] : name
     """
-    touch ${base}_cp_masks.tif
+    touch ${prefix}.tif
 
         cat <<-END_VERSIONS > versions.yml
     "${task.process}":
