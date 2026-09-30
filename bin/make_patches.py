@@ -9,13 +9,14 @@ and pixels outside the ROI are filled with each channel's mean inside the ROI so
 
 Outputs:
   patches/<prefix>_patch<NNNN>.tif           image patch (2D, or CYX if the input is multi-channel)
-  patches/<prefix>_patch<NNNN>_membrane.tif  membrane patch, if --membrane is given
+  patches/<prefix>_patch<NNNN>_membrane.tif  membrane patch, if --membrane is given (stacked into the image
+                                             patch as [membrane, image] instead with --stack_membrane)
   <prefix>_patches.csv                       patch windows in image pixel coordinates
   <prefix>_patches.png                       overview of processed/skipped patches over the image
 """
 
 # Written by Patrick Crock
-# Version: 0.0.1
+# Version: 0.0.2
 
 import argparse
 import math
@@ -104,6 +105,9 @@ def main():
     parser = argparse.ArgumentParser(description="Split an image into overlapping patches for segmentation.")
     parser.add_argument("--image", required=True, help="Segmentation input image (2D or CYX)")
     parser.add_argument("--membrane", default=None, help="Optional membrane image, patched on the same grid")
+    parser.add_argument("--stack_membrane", action="store_true",
+                        help="Write membrane and image as one 2-channel patch [membrane, image] (Cellpose input) "
+                             "instead of a separate _membrane.tif")
     parser.add_argument("--roi_mask", default=None, help="Optional ROI mask (channel 0 is the inclusion area)")
     parser.add_argument("--prefix", required=True, help="Output file prefix")
     parser.add_argument("--patch_size", type=int, default=2048, help="Patch width/height in pixels (0 = whole image)")
@@ -164,12 +168,18 @@ def main():
             if inside is not None:
                 crop = fill_outside(crop, inside)
             name = f"{args.prefix}_patch{index:04d}"
-            tifffile.imwrite(os.path.join(args.outdir, f"{name}.tif"), crop[0] if is_2d else crop)
+            mem = None
             if membrane is not None:
                 mem = membrane[:, y0:y1, x0:x1]
                 if inside is not None:
                     mem = fill_outside(mem, inside)
-                tifffile.imwrite(os.path.join(args.outdir, f"{name}_membrane.tif"), mem[0])
+            if mem is not None and args.stack_membrane:
+                # Cellpose input: one 2-channel patch, [membrane, nuclear]
+                tifffile.imwrite(os.path.join(args.outdir, f"{name}.tif"), np.stack([mem[0], crop[0]]))
+            else:
+                tifffile.imwrite(os.path.join(args.outdir, f"{name}.tif"), crop[0] if is_2d else crop)
+                if mem is not None:
+                    tifffile.imwrite(os.path.join(args.outdir, f"{name}_membrane.tif"), mem[0])
             rows.append(dict(patch=index, x0=x0, y0=y0, x1=x1, y1=y1, **grid, roi_fraction=roi_fraction, status="kept"))
 
     kept = [r for r in rows if r["status"] == "kept"]

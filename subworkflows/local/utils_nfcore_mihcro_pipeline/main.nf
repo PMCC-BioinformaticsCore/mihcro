@@ -122,6 +122,11 @@ workflow PIPELINE_INITIALISATION {
                 error("Sample '${meta.id}': Path does not exist or is not a file/directory: ${tifs}")
             }
 
+            // Pre-stitched and HALO-fused inputs are a single image; only tiled input has several files
+            if (meta.format in ['stitched', 'fused'] && tif_list.size() != 1) {
+                error("Sample '${meta.id}': format '${meta.format}' expects exactly one TIFF, but found ${tif_list.size()}:\n  - ${tif_list.join('\n  - ')}")
+            }
+
             return [meta, tif_list]
         }
         .set { ch_samplesheet }

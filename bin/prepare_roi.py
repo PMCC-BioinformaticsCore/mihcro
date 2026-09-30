@@ -62,7 +62,7 @@ def read_image_info(xml_path):
 def coordinate_scale(scale_json, processed_mpp):
     """
     Factor that maps full-resolution input pixels (the space QuPath exports in) to processed-image pixels.
-    Uses the metadata json written by ome_tiff_rescaler.py; no json means the image was not downscaled.
+    Uses the scale metadata json written by preprocess_image.py; no json means the image was not downscaled.
     """
     if not scale_json:
         return 1.0
@@ -70,9 +70,10 @@ def coordinate_scale(scale_json, processed_mpp):
         meta = json.load(f)
     original = meta.get("original_physical_size_x")
     final = meta.get("final_physical_size_x") or processed_mpp
-    if not original or not final:
-        sys.exit(f"ERROR: could not read original/final physical pixel sizes from {scale_json}")
-    return float(original) / float(final)
+    if original and final:
+        return float(original) / float(final)
+    # No pixel sizes: only possible without downscaling (downscaling requires them), so pixels map 1:1
+    return 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +387,7 @@ def main():
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--geojson", nargs="+", help="QuPath-exported GeoJSON file(s)")
     source.add_argument("--tissue_image", help="Nuclear image for automatic tissue detection")
-    parser.add_argument("--scale_json", default=None, help="Downscaling metadata json (ome_tiff_rescaler.py)")
+    parser.add_argument("--scale_json", default=None, help="Scale metadata json written by preprocess_image.py")
     parser.add_argument("--exclude", default="Ignore*",
                         help="Comma-separated, case-insensitive class name globs whose shapes are subtracted from the ROI")
     parser.add_argument("--tissue_downsample", type=int, default=16, help="Downsampling factor for tissue detection")

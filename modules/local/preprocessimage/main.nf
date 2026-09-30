@@ -9,33 +9,52 @@ process PREPROCESS_IMAGE {
     tuple val(meta2), path(markerfile)
 
     output:
-    tuple val(meta), path("*.preproc.ome.tif"), emit: image
-    path "versions.yml",                        emit: versions
+    tuple val(meta), path("*.ome.tiff")      , emit: image
+    tuple val(meta), path("*.xml")           , emit: xml
+    tuple val(meta), path("*.json")          , emit: scale
+    tuple val(meta), path("*_dapi.tif")      , emit: nuclear
+    tuple val(meta), path("*_membrane.tif")  , emit: membrane, optional: true
+    tuple val(meta), path("*_AF.tif")        , emit: af, optional: true
+    path "versions.yml"                      , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
+    def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     preprocess_image.py \\
+        $args \\
         --image ${image} \\
         --markers ${markerfile} \\
-        --output ${prefix}.preproc.ome.tif
+        --prefix ${prefix} \\
+        --threads ${task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')
-        preprocess_image.py: \$(grep 'Version:' preprocess_image.py | cut -d ' ' -f 3)
+        tifffile: \$(python -c "import tifffile; print(tifffile.__version__)")
+        preprocess_image.py: \$(grep -m1 'Version:' "\$(command -v preprocess_image.py)" | cut -d ' ' -f 3)
     END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def image_name = params.downscale_mode == '1um' ? "${prefix}.downscaled.ome.tiff" : "${prefix}.processed.ome.tiff"
     """
-    touch ${prefix}.preproc.ome.tif
+    touch ${image_name}
+    touch ${prefix}.xml
+    touch ${prefix}.json
+    touch ${prefix}_dapi.tif
+    ${params.membrane_channel ? "touch ${prefix}_membrane.tif" : ''}
+    ${params.dapi_bg_method == 'af' ? "touch ${prefix}_AF.tif" : ''}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')
-        preprocess_image.py: \$(grep 'Version:' preprocess_image.py | cut -d ' ' -f 3)
+        tifffile: \$(python -c "import tifffile; print(tifffile.__version__)")
+        preprocess_image.py: \$(grep -m1 'Version:' "\$(command -v preprocess_image.py)" | cut -d ' ' -f 3)
     END_VERSIONS
     """
 }

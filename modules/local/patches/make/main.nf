@@ -40,11 +40,12 @@ process MAKE_PATCHES {
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def separate_membrane = membrane && !(task.ext.args ?: '').contains('--stack_membrane')
     """
     mkdir -p patches
     touch patches/${prefix}_patch0000.tif
     touch patches/${prefix}_patch0001.tif
-    ${membrane ? "touch patches/${prefix}_patch0000_membrane.tif patches/${prefix}_patch0001_membrane.tif" : ''}
+    ${separate_membrane ? "touch patches/${prefix}_patch0000_membrane.tif patches/${prefix}_patch0001_membrane.tif" : ''}
     touch ${prefix}_patches.csv
     touch ${prefix}_patches.png
 
