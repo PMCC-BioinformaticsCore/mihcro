@@ -2,19 +2,15 @@
 
 ## Introduction
 
-This document describes the output produced by the pipeline.
-
-The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
-
-<!-- TODO nf-core: Write this documentation describing your workflow's output -->
+This document describes the output produced by the pipeline. The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
 
 ## Pipeline overview
 
-The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes data using the following steps:
+The pipeline is built using [Nextflow](https://www.nextflow.io/) and produces the following output categories:
 
-- [Main outputs](#main-outputs) - Images and HTMLs detailing major steps in the pipeline or analysis results
-- [Intermediate outputs](#intermediate-outputs) - Files produced during workflow execution that are used further downstream
-- [Pipeline information](#pipeline-information) - Report metrics generated during the workflow execution
+- [Main outputs](#main-outputs) — Images and HTML files detailing major steps in the pipeline or analysis results
+- [Intermediate outputs](#intermediate-outputs) — Files produced during workflow execution that are used further downstream
+- [Pipeline information](#pipeline-information) — Report metrics generated during workflow execution
 
 > [!TIP]
 > Example images of outputs are present in the [Example outputs](#example-outputs) section.
@@ -24,17 +20,34 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 <details markdown="1">
 <summary>Output files</summary>
 
-- `reports/`
-  - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`. If the sample has a region of interest, the report includes a *Regions of interest* section with cell counts, density, marker intensity and cluster composition per annotation class.
-- `images/`
-  - Output segmentation image: `<SAMPLENAME>_bw_boundaries.tiff`, which contains two channels: one with the processed DAPI, the other with the segmentation borders, both in black-and-white.
-  - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`. If the sample has a region of interest, its outline is drawn in green.
-- `dapi_processed/`
-  - This directory will only be present if DAPI preprocessing was used in the pipeline.
-  - A TIFF image of the DAPI channel post background removal (if executed) and binarisation: `<SAMPLENAME>_dapi_processed.tif`
-  - A PNG image showing an overview of the DAPI channel pre- and post- processing, as well as a representative histogram with Otsu threshold drawn: `<SAMPLENAME>_dapi_diagnostic.png`
-
-</details>
+- `<SAMPLENAME>/`
+  - `reports/`
+    - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`. If the sample has a region of interest, the report includes a *Regions of interest* section with cell counts, density, marker intensity and cluster composition per annotation class.
+  - `image_downscale/`
+    - If downscaling was performed, this directory will contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`
+  - `segmentation/`
+    - The whole-image segmentation mask from Mesmer (default): `<SAMPLENAME>_mesmer.tif`, or Cellpose: `<SAMPLENAME>_cellpose.tif`. Segmentation runs per patch, and the patch masks are resolved into this single mask.
+    - `overviews/`
+      - Output segmentation image: `<SAMPLENAME>_bw_boundaries.tiff`, which contains two channels — one with the processed DAPI, the other with the segmentation borders, both in black-and-white
+      - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`. If the sample has a region of interest, its outline is drawn in green.
+    - `<SEGMENTATION_METHOD>_mcquant/`
+      - The cell-by-feature matrix output from MCQuant: `<SAMPLENAME>.csv`
+      - If the sample has a region of interest, the same table with ROI columns added: `<SAMPLENAME>_<SEGMENTATION_METHOD>_cells_roi.csv`. It has one `roi_<Class>` column per class and a `roi_class` column (see [usage docs](usage.md#regions-of-interest)).
+  - `roi/`
+    - Present if the sample had a QuPath GeoJSON or automatic tissue detection. All files are aligned to the processed (downscaled) image and can be reused to mask downstream analyses:
+    - `<SAMPLENAME>_roi_mask.ome.tif`: multi-channel binary mask (0/255). Channel `ROI` is the full inclusion area, followed by one channel per annotation class (or `Tissue` for automatic detection).
+    - `<SAMPLENAME>_roi_labels.tif`: label image where each pixel holds the index of the smallest annotation class covering it (0 = outside the ROI).
+    - `<SAMPLENAME>_roi_classes.csv`: lookup table for the channels and label indices, with the number of shapes and area (px and mm²) per class, including excluded (`Ignore*`) classes.
+    - `<SAMPLENAME>_roi.geojson`: the input shapes rescaled to processed-image pixel coordinates (GeoJSON input only).
+    - `<SAMPLENAME>_roi.png`: overview of the ROI and its classes.
+  - `seurat_objects/`
+    - The saved Seurat object, clustered, output from the R analysis step: `<SAMPLENAME>_seurat.rds`
+  - `cluster_markers/`
+    - One CSV per clustering resolution (0.25, 0.5, 0.75, 1), containing mean intensity for each marker per cluster: `<SAMPLENAME>_<RESOLUTION>_cluster_mean_intensity.csv`
+  - `dapi_processed/`
+    - This directory will only be present if DAPI preprocessing was used in the pipeline.
+    - A TIFF image of the DAPI channel post background removal (if executed) and binarisation: `<SAMPLENAME>_dapi_processed.tif`
+    - A PNG image showing an overview of the DAPI channel pre- and post-processing, as well as a representative histogram with the Otsu threshold drawn: `<SAMPLENAME>_dapi_diagnostic.png`
 
 </details>
 
@@ -43,30 +56,18 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 <details markdown="1">
 <summary>Output files</summary>
 
-- `[SAMPLENAME]/`
-  - `extracted_channel/`
+- `<SAMPLENAME>/`
+  - `extracted_channels/`
     - The extracted DAPI channel used in segmentation: `<SAMPLENAME>_dapi.tif`
-    - If AF subtraction method was used in DAPI preprocessing, the extracted channel will also be found: `<SAMPLENAME>_AF.tif`
-  - `roi/`
-    - Present if the sample had a QuPath GeoJSON or automatic tissue detection. All files are aligned to the processed (downscaled) image and can be reused to mask downstream analyses:
-    - `<SAMPLENAME>_roi_mask.ome.tif`: multi-channel binary mask (0/255). Channel `ROI` is the full inclusion area, followed by one channel per annotation class (or `Tissue` for automatic detection).
-    - `<SAMPLENAME>_roi_labels.tif`: label image where each pixel holds the index of the smallest annotation class covering it (0 = outside the ROI).
-    - `<SAMPLENAME>_roi_classes.csv`: lookup table for the channels and label indices, with the number of shapes and area (px and mm²) per class, including excluded (`Ignore*`) classes.
-    - `<SAMPLENAME>_roi.geojson`: the input shapes rescaled to processed-image pixel coordinates (GeoJSON input only).
-    - `<SAMPLENAME>_roi.png`: overview of the ROI and its classes.
+    - If the AF subtraction method was used in DAPI preprocessing, the extracted channel will also be found here: `<SAMPLENAME>_AF.tif`
+    - Likewise, if a cell boundary stain was specified, this channel will also be present.
   - `patches/`
     - `<SAMPLENAME>_patches.csv`: the patch grid, with the window each patch was cropped to and whether it was segmented or skipped.
     - `<SAMPLENAME>_patches.png`: overview of segmented (green) and skipped (red) patches over the DAPI image.
-  - `mesmer/` or `cellpose/`
-    - The whole-image segmentation mask, resolved from the per-patch masks: `<SAMPLENAME>_mesmer.tif` or `<SAMPLENAME>_cellpose.tif`
-    - `mcquant/`
-      - The cell-by-feature matrix output from MCQuantL: `<SAMPLENAME>.csv`
-      - If the sample has a region of interest, the same table with ROI columns added: `<SAMPLENAME>_<seg>_cells_roi.csv`. It has one `roi_<Class>` column per class and a `roi_class` column (see [usage docs](usage.md#regions-of-interest)).
   - `metadata/`
     - XML metadata extracted from the TIFF image: `<SAMPLENAME>.xml`
-    - If downscaling was performed, this directory will also contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`
-  - `qupath_stitch/`
-    - If input was in the `tiles` format, this directory will be present with the stitched TIFF: `<SAMPLENAME>.ome.tif`
+  - `image_hires/`
+    - This directory will contain the `<SAMPLENAME>.ome.tif` full-resolution image output from tile stitching or legacy HALO conversion — this is the input for the rest of the workflow.
 
 </details>
 
@@ -77,105 +78,81 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 
 - `pipeline_info/`
   - Reports generated by Nextflow: `execution_report.html`, `execution_timeline.html`, `execution_trace.txt` and `pipeline_dag.dot`/`pipeline_dag.svg`.
-  - Reports generated by the pipeline: `pipeline_report.html`, `pipeline_report.txt` and `software_versions.yml`. The `pipeline_report*` files will only be present if the `--email` / `--email_on_fail` parameter's are used when running the pipeline.
+  - Reports generated by the pipeline: `pipeline_report.html`, `pipeline_report.txt` and `software_versions.yml`. The `pipeline_report*` files will only be present if the `--email` / `--email_on_fail` parameters are used when running the pipeline.
   - Reformatted samplesheet files used as input to the pipeline: `samplesheet.valid.csv`.
   - Parameters used by the pipeline run: `params.json`.
 
 </details>
 
+[Nextflow](https://www.nextflow.io/docs/latest/tracing.html) provides excellent functionality for generating various reports relevant to the running and execution of the pipeline. This will allow you to troubleshoot errors with the running of the pipeline, and also provides information such as launch commands, run times and resource usage.
+
 ## Example outputs
 
 <details markdown="1">
-<summary> Segmentation summary images </summary>
+<summary>Segmentation summary images</summary>
 
-These outputs include the following two TIFF images (zoomed in here for the sake of clarity):
+These outputs include the following two TIFF images (zoomed in here for clarity):
 
 `<SAMPLENAME>_bw_boundaries.tiff`
 
-DAPI Channel               |  Segmentation boundaries
-:-------------------------:|:-------------------------:
-![DAPI channel output](images/example_mask_zoom-0.png)  |  ![Segmentation boundaries](images/example_mask_zoom-1.png)
+| DAPI Channel | Segmentation boundaries |
+|:---:|:---:|
+| ![DAPI channel output](images/example_mask_zoom-0.png) | ![Segmentation boundaries](images/example_mask_zoom-1.png) |
 
 `<SAMPLENAME>_rgb_boundaries.tiff`
 
 ![Segmentation summary image](images/example_seg_zoom.png)
 
-
 </details>
 
 <details markdown="1">
-<summary> DAPI preprocessing diagnostic </summary>
+<summary>DAPI preprocessing diagnostic</summary>
 
-Apart from `<SAMPLENAME>_dapi_processed.tif`, which shows the output binarised/background-removed DAPI channel, the DAPI preprocessing step also outputs `<SAMPLENAME>_dapi_diagnostic.png`, an example of which is show below.
+Apart from `<SAMPLENAME>_dapi_processed.tif`, which shows the output binarised/background-removed DAPI channel, the DAPI preprocessing step also outputs `<SAMPLENAME>_dapi_diagnostic.png`, an example of which is shown below.
 
-This features, from left to right: The raw DAPI channel, processed DAPI channel, and a histogram of DAPI intensities across the sample, with the Otsu threshold derived from the workflow drawn as a vertical line.
+This features, from left to right: the raw DAPI channel, the processed DAPI channel, and a histogram of DAPI intensities across the sample, with the Otsu threshold derived from the workflow drawn as a vertical line.
 
 ![Example DAPI diagnostic image](images/example_dapi_diagnostic.png)
 
 </details>
 
 <details markdown="1">
-<summary> QC and clustering HTML output </summary>
+<summary>QC and clustering HTML output</summary>
 
 In brief, the QC report outputs the following:
 
-* Tabular QC and statistical overviews for:
-  * Segmentation outputs (e.g. cell area, eccentricity, etc.)
-  * Inferred marker intensity from MCQuant (Raw, log-transformed, and CLR-transformed)
+- Tabular QC and statistical overviews for:
+  - Segmentation outputs (e.g. cell area, eccentricity, etc.)
+  - Inferred marker intensity from MCQuant (raw, log-transformed, and CLR-transformed)
 
-    **Statistical summary - CLR transformed data**
+  **Statistical summary — CLR transformed data**
 
-<div style="margin-left: 2em;">
+  | Marker  | Mean       | Median     | SD        | Min        | Max       |
+  |---------|------------|------------|-----------|------------|-----------|
+  | CRIP2   | -0.3847963 | -0.3721695 | 0.1047961 | -0.9138822 | 0.6241850 |
+  | DAPI    | 0.6234870  | 0.6084664  | 0.2371259 | -0.2121824 | 1.6505124 |
+  | HLA.ABC | 0.2781894  | 0.2367254  | 0.3568910 | -0.7763776 | 1.8521508 |
+  | IRF9    | -0.3403266 | -0.3356826 | 0.0934302 | -0.7458426 | 0.1718112 |
+  | PANCK   | -0.2773508 | -0.3112169 | 0.1768041 | -0.8039722 | 0.9906032 |
+  | PSTAT1  | -0.3817753 | -0.3797387 | 0.1076608 | -0.8377921 | 0.5672849 |
+  | YH2AX   | -0.1487883 | -0.3007846 | 0.4199619 | -0.8465718 | 2.3328215 |
 
-| Marker   | Mean       | Median     | SD         | Min        | Max       |
-|----------|------------|------------|------------|------------|-----------|
-| CRIP2    | -0.3847963 | -0.3721695 | 0.1047961  | -0.9138822 | 0.6241850 |
-| DAPI     | 0.6234870  | 0.6084664  | 0.2371259  | -0.2121824 | 1.6505124 |
-| HLA.ABC  | 0.2781894  | 0.2367254  | 0.3568910  | -0.7763776 | 1.8521508 |
-| IRF9     | -0.3403266 | -0.3356826 | 0.0934302  | -0.7458426 | 0.1718112 |
-| PANCK    | -0.2773508 | -0.3112169 | 0.1768041  | -0.8039722 | 0.9906032 |
-| PSTAT1   | -0.3817753 | -0.3797387 | 0.1076608  | -0.8377921 | 0.5672849 |
-| YH2AX    | -0.1487883 | -0.3007846 | 0.4199619  | -0.8465718 | 2.3328215 |
+- Graphical overviews of marker intensity distribution, including boxplots and histograms
 
-</div>
+  ![Example marker intensity histogram](images/example_histogram.png)
 
-* Graphical overviews of marker intensity distribution, including boxplots and histograms
+- Further analysis on marker intensities, including marker correlation analysis and Quantile-Quantile plots
 
-<div style="margin-left: 2em;">
+- UMAP reductions of the CLR-transformed data, grouped by Louvain clustering output at various resolution levels (0.2, 0.3 ... 0.8)
 
-![Example marker intensity histogram](images/example_histogram.png)
+  ![Example UMAP](images/example_UMAP.png)
 
-</div>
+- Spatial representation of cells grouped by their Louvain clusters (at various resolutions)
 
-* Further analysis on marker intensities, including marker correlation analysis, and Quantile-Quantile plots
-* UMAP reductions of the CLR-transformed data, grouped by Louvain clustering output at various resolution levels (0.2, 0.3 ... 0.8)
+  ![Example spatial cluster map](images/example_spatial_clusters.png)
 
+- Spatial representation of cells coloured by their marker intensity levels
 
-<div style="margin-left: 2em;">
-
-![Example UMAP](images/example_UMAP.png)
-
-</div>
-
-* Spatial representation of the cells grouped by their Louvain clusters (again, at various resolutions)
-
-
-<div style="margin-left: 2em;">
-
-![Example UMAP](images/example_spatial_clusters.png)
-
-</div>
-
-* Spatial representation of the cells, coloured by their marker intensity levels.
-
-<div style="margin-left: 2em;">
-
-![Example UMAP](images/example_spatial_markers.png)
-
-</div>
-
+  ![Example spatial marker map](images/example_spatial_markers.png)
 
 </details>
-
-
-[Nextflow](https://www.nextflow.io/docs/latest/tracing.html) provides excellent functionality for generating various reports relevant to the running and execution of the pipeline. This will allow you to troubleshoot errors with the running of the pipeline, and also provide you with other information such as launch commands, run times and resource usage.

@@ -1,8 +1,6 @@
 process RENDER_SEGMENTATION {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/images", pattern: "*_boundaries.tiff", mode: 'copy'
-
     container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:

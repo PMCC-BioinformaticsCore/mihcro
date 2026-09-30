@@ -32,27 +32,12 @@
                     "description": "Path to comma-separated file containing information about the markers in the experiment.",
                     "help_text": ""
                 },
-                "segmentation": {
-                    "type": "string",
-                    "description": "Segmentation method to use",
-                    "enum": ["mesmer", "cellpose"],
-                    "help_text": "Choose between mesmer or cellpose for cell segmentation"
-                },
                 "downscale_mode": {
                     "type": "string",
                     "default": "1um",
                     "enum": ["1um", "none"],
                     "description": "Downscaling mode for image processing. '1um' for downscaling of image to 1 pixel/1um (recommended), 'none' for no downscaling."
                   },
-                "nuclear_channel": {
-                    "type": "string",
-                    "default": "DAPI",
-                    "description": "Name of your nuclear marker channel for cell segmentation. Defaults to DAPI."
-                },
-                "membrane_channel": {
-                    "type": "string",
-                    "description": "Name of your membrane marker channel for cell segmentation."
-                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",
@@ -65,6 +50,42 @@
                     "fa_icon": "fas fa-envelope",
                     "help_text": "Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every run.",
                     "pattern": "^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})$"
+                }
+            }
+        },
+        "segmentation_parameters": {
+            "title": "Cell Segmentation Options",
+            "type": "object",
+            "description": "Parameters for cell segmentation",
+            "required": [
+                "segmentation"
+            ],
+            "properties": {
+                "segmentation": {
+                    "type": "string",
+                    "description": "Segmentation method to use",
+                    "enum": ["mesmer", "cellpose"],
+                    "help_text": "Choose between mesmer or cellpose for cell segmentation"
+                },
+                "nuclear_channel": {
+                    "type": "string",
+                    "default": "DAPI",
+                    "description": "Name of your nuclear marker channel for cell segmentation. Defaults to DAPI."
+                },
+                "membrane_channel": {
+                    "type": "string",
+                    "description": "Name of your membrane marker channel for cell segmentation."
+                },
+                "cellpose_model": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to a custom Cellpose model file."
+                },
+                "cellpose_diam": {
+                    "type": "integer",
+                    "default": 15,
+                    "minimum": 1,
+                    "description": "Diameter parameter for cellpose segmentation. Default is 15. Corresponds to mean expected diameter of cells in image."
                 }
             }
         },

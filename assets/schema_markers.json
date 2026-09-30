@@ -9,8 +9,7 @@
         "properties": {
             "marker_name": {
                 "type": "string",
-                "pattern": "^\\S+$",
-                "errorMessage": "Marker name must be provided and cannot contain spaces",
+                "errorMessage": "Marker name must be provided",
                 "meta": ["marker_name"]
             },
             "channel_name": {
