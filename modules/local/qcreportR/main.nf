@@ -1,9 +1,6 @@
 process RENDER_REPORT {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/reports", pattern: "*.html", mode: 'copy'
-    publishDir "${params.outdir}/${meta.id}/seurat_objects", pattern: "*_seurat.rds", mode: 'copy'
-    publishDir "${params.outdir}/${meta.id}/cluster_markers", pattern: "*_cluster_mean_intensity.csv", mode: 'copy'
 
     container "ghcr.io/patrickcrock/rmdqc_microscopy:1.0"
 

@@ -3,9 +3,6 @@ process DAPI_BACKGROUND_REMOVAL {
     label 'process_low'
 
     container "ghcr.io/patrickcrock/mihcro_python:1.1"
-    containerOptions "--env MPLCONFIGDIR=/tmp/matplotlib-${task.index}"
-
-    publishDir "${params.outdir}/dapi_processed", mode: 'copy'
 
     input:
     tuple val(meta), path(dapi_tif), path(af_tif, stageAs: 'af_channel?.tif')
@@ -25,6 +22,8 @@ process DAPI_BACKGROUND_REMOVAL {
     def radius_arg = params.dapi_bg_radius ? "-r ${params.dapi_bg_radius}" : ''
     def af_arg = af_tif && af_tif.name != 'af_channel.tif' ? "-a ${af_tif}" : ''
     """
+    export MPLCONFIGDIR=./matplotlib
+
     otsu_thresholding.py \\
         -i ${dapi_tif} \\
         -o ${prefix}_dapi_processed.tif \\
