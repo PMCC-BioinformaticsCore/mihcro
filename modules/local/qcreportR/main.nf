@@ -6,7 +6,7 @@ process RENDER_REPORT {
     container "ghcr.io/patrickcrock/rmdqc_microscopy:1.0"
 
     input:
-    tuple val(meta), path(cellbyfeature)
+    tuple val(meta), path(cellbyfeature), path(roi_classes)
     tuple val(meta3), path(markerfile)
     path rmd_file
 
@@ -16,12 +16,13 @@ process RENDER_REPORT {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def roi_classes_name = roi_classes ? roi_classes.name : ''
     def VERSION='1.0' // Container version
     """
     R -e "rmarkdown::render('${rmd_file}', \
         output_format='html_document', \
         output_file='${prefix}_report.html', \
-        params=list(cellbyfeature='${cellbyfeature.name}', markerfile='${markerfile.name}', samplename='${prefix}'), \
+        params=list(cellbyfeature='${cellbyfeature.name}', markerfile='${markerfile.name}', samplename='${prefix}', roiclasses='${roi_classes_name}'), \
         envir=new.env())"
 
     cat <<-END_VERSIONS > versions.yml

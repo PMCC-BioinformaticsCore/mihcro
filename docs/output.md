@@ -25,10 +25,10 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 <summary>Output files</summary>
 
 - `reports/`
-  - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`
+  - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`. If the sample has a region of interest, the report includes a *Regions of interest* section with cell counts, density, marker intensity and cluster composition per annotation class.
 - `images/`
   - Output segmentation image: `<SAMPLENAME>_bw_boundaries.tiff`, which contains two channels: one with the processed DAPI, the other with the segmentation borders, both in black-and-white.
-  - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`
+  - Rendering of the segmentation borders (red) over the DAPI values (blue) in TIFF format: `<SAMPLENAME>_rgb_boundaries.tiff`. If the sample has a region of interest, its outline is drawn in green.
 - `dapi_processed/`
   - This directory will only be present if DAPI preprocessing was used in the pipeline.
   - A TIFF image of the DAPI channel post background removal (if executed) and binarisation: `<SAMPLENAME>_dapi_processed.tif`
@@ -47,10 +47,21 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
   - `extracted_channel/`
     - The extracted DAPI channel used in segmentation: `<SAMPLENAME>_dapi.tif`
     - If AF subtraction method was used in DAPI preprocessing, the extracted channel will also be found: `<SAMPLENAME>_AF.tif`
+  - `roi/`
+    - Present if the sample had a QuPath GeoJSON or automatic tissue detection. All files are aligned to the processed (downscaled) image and can be reused to mask downstream analyses:
+    - `<SAMPLENAME>_roi_mask.ome.tif`: multi-channel binary mask (0/255). Channel `ROI` is the full inclusion area, followed by one channel per annotation class (or `Tissue` for automatic detection).
+    - `<SAMPLENAME>_roi_labels.tif`: label image where each pixel holds the index of the smallest annotation class covering it (0 = outside the ROI).
+    - `<SAMPLENAME>_roi_classes.csv`: lookup table for the channels and label indices, with the number of shapes and area (px and mm²) per class, including excluded (`Ignore*`) classes.
+    - `<SAMPLENAME>_roi.geojson`: the input shapes rescaled to processed-image pixel coordinates (GeoJSON input only).
+    - `<SAMPLENAME>_roi.png`: overview of the ROI and its classes.
+  - `patches/`
+    - `<SAMPLENAME>_patches.csv`: the patch grid, with the window each patch was cropped to and whether it was segmented or skipped.
+    - `<SAMPLENAME>_patches.png`: overview of segmented (green) and skipped (red) patches over the DAPI image.
   - `mesmer/` or `cellpose/`
-    - The segmentation mask output from mesmer (default): `<SAMPLENAME>_mesmer.tif`
+    - The whole-image segmentation mask, resolved from the per-patch masks: `<SAMPLENAME>_mesmer.tif` or `<SAMPLENAME>_cellpose.tif`
     - `mcquant/`
       - The cell-by-feature matrix output from MCQuantL: `<SAMPLENAME>.csv`
+      - If the sample has a region of interest, the same table with ROI columns added: `<SAMPLENAME>_<seg>_cells_roi.csv`. It has one `roi_<Class>` column per class and a `roi_class` column (see [usage docs](usage.md#regions-of-interest)).
   - `metadata/`
     - XML metadata extracted from the TIFF image: `<SAMPLENAME>.xml`
     - If downscaling was performed, this directory will also contain the downscaled TIFF: `<SAMPLENAME>.downscaled.ome.tif`

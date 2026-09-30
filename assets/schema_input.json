@@ -27,6 +27,13 @@
                 "errorMessage": "Format must be one of: tiles, stitched, fused",
                 "meta": ["format"],
                 "help_text": "Input format: 'tiles' for tiled TIFFs (default), 'stitched' for .ome.tiff files, 'fused' for HALO-fused .tiff files"
+            },
+            "roi": {
+                "type": "string",
+                "format": "path",
+                "exists": true,
+                "errorMessage": "ROI path must point to a QuPath-exported .geojson file or a directory of .geojson files",
+                "help_text": "Optional regions of interest: a QuPath-exported GeoJSON file, or a directory of GeoJSON files, with coordinates in full-resolution pixels of the input image. Only patches intersecting these shapes are segmented. If empty, tissue is detected automatically (see --tissue_detection)."
             }
         },
         "required": ["sample", "tiffs"]

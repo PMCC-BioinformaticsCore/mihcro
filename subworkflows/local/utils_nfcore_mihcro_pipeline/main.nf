@@ -79,11 +79,25 @@ workflow PIPELINE_INITIALISATION {
     validateDAPIbgParams()
 
     //
+    // Validate patching parameters
+    //
+    validatePatchParams()
+
+    //
     // Create channel from input file provided through params.input
     //
 
     Channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
+        // The 'roi' column is optional, so older samplesheets without it still work
+        .map { row -> [row[0], row[1], row.size() > 2 ? row[2] : []] }
+        .multiMap { meta, tifs, roi ->
+            samplesheet: [meta, tifs]
+            roi: [meta, resolveRoiFiles(meta, roi)]
+        }
+        .set { ch_input }
+
+    ch_input.samplesheet
         .map { meta, tifs ->
             def path = file(tifs)
             def tif_list
@@ -133,6 +147,7 @@ workflow PIPELINE_INITIALISATION {
     emit:
     samplesheet = ch_samplesheet
     markers     = ch_markers
+    roi         = ch_input.roi // channel: [ meta, [ GeoJSON files ] ], empty list if no ROI was given
     versions    = ch_versions
 }
 
@@ -234,6 +249,47 @@ def validateDAPIbgParams() {
     if (params.dapi_otsu_leniency < -1.0 || params.dapi_otsu_leniency > 1.0) {
         error("--dapi_otsu_leniency must be between -1.0 and 1.0, got: ${params.dapi_otsu_leniency}")
     }
+}
+
+//
+// Validate patching parameters
+//
+def validatePatchParams() {
+    if (params.patch_size < 0) {
+        error("--patch_size must be 0 (whole image) or a positive number of pixels, got: ${params.patch_size}")
+    }
+    if (params.patch_size > 0 && params.patch_overlap >= params.patch_size) {
+        error("--patch_overlap (${params.patch_overlap}) must be smaller than --patch_size (${params.patch_size})")
+    }
+    if (params.patch_merge_threshold <= 0 || params.patch_merge_threshold > 1) {
+        error("--patch_merge_threshold must be in (0, 1], got: ${params.patch_merge_threshold}")
+    }
+}
+
+//
+// Resolve the samplesheet 'roi' column (a GeoJSON file or a directory of them) to a list of files
+//
+def resolveRoiFiles(meta, roi) {
+    if (!roi) {
+        return []
+    }
+    def path = file(roi)
+    if (path.isDirectory()) {
+        def roi_list = path.listFiles().findAll { f -> f.isFile() && isGeojsonFile(f) }.sort { f -> f.name }
+        if (roi_list.isEmpty()) {
+            error("Sample '${meta.id}': No .geojson files found in ROI directory: ${roi}")
+        }
+        return roi_list
+    }
+    if (!isGeojsonFile(path)) {
+        error("Sample '${meta.id}': ROI file must be a .geojson (or .json) file: ${roi}")
+    }
+    return [path]
+}
+
+def isGeojsonFile(f) {
+    def name = f.name.toLowerCase()
+    return name.endsWith('.geojson') || name.endsWith('.json')
 }
 
 //

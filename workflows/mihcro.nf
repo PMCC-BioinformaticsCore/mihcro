@@ -18,12 +18,15 @@ include { EXTRACTIMAGECHANNEL as EXTRACT_MEMBRANE } from '../modules/local/extra
 
 include { DOWNSCALE_OME_TIFF } from '../modules/local/downscaletiff'
 
-include { DEEPCELL_MESMER } from '../modules/nf-core/deepcell/mesmer/main'
+include { PREPARE_ROI } from '../modules/local/roi/prepare/main'
+include { TISSUE_DETECT } from '../modules/local/roi/tissue/main'
+
 include { PREPROCESS_CELLPOSE } from '../modules/local/cellpose/main'
-include { CELLPOSE } from '../modules/local/cellpose/main' // custom module to set cache directories
+include { PATCH_SEGMENTATION } from '../subworkflows/local/patch_segmentation/main'
 
 include { SEPARATEIMAGECHANNELS } from '../modules/local/separateimagechannels/main'
 include { MCQUANT } from '../modules/nf-core/mcquant/main'
+include { ANNOTATE_CELLS } from '../modules/local/annotatecells/main'
 
 include { RENDER_REPORT } from '../modules/local/qcreportR/main'
 include { RENDER_SEGMENTATION } from '../modules/local/renderseg/main'
@@ -40,6 +43,7 @@ workflow MIHCRO {
     take:
     ch_samplesheet // channel: samplesheet read in from --input
     ch_markers // channel: markers file [[id:markers], params.markers]
+    ch_roi // channel: [ meta, [ QuPath GeoJSON files ] ] from the samplesheet 'roi' column ([] if none)
 
     main:
 
@@ -89,9 +93,11 @@ workflow MIHCRO {
             ch_images
         )
         ch_processed_images = DOWNSCALE_OME_TIFF.out.downscaled
+        ch_scale = DOWNSCALE_OME_TIFF.out.metadata
         ch_versions = ch_versions.mix(DOWNSCALE_OME_TIFF.out.versions)
     } else {
         ch_processed_images = ch_images
+        ch_scale = ch_images.map { meta, img -> [meta, []] }
     }
 
     // Extract XML, DAPI channel from processed images
@@ -136,41 +142,69 @@ workflow MIHCRO {
         ch_membrane = ch_nuclear_image.map { meta, img -> [meta, []] }
     }
 
-    // Segmentation
+    // Regions of interest: QuPath GeoJSON annotations if given, otherwise automatic tissue detection
 
-    if (params.segmentation == 'mesmer') {
-
-        DEEPCELL_MESMER (
-            ch_nuclear_image,
-            ch_membrane
-        )
-
-        ch_segmentation = DEEPCELL_MESMER.out.mask
-            .map { meta, it ->
-                return [meta.id, meta + [seg: 'mesmer'], it]
-            }
-        ch_versions = ch_versions.mix(DEEPCELL_MESMER.out.versions)
-
-    } else if (params.segmentation == 'cellpose') {
-
-        if (params.membrane_channel != null) {
-            PREPROCESS_CELLPOSE(ch_nuclear_image, ch_membrane)
-            ch_cellpose_input = PREPROCESS_CELLPOSE.out.combined
-        } else {
-            ch_cellpose_input = ch_nuclear_image
+    ch_roi_input = BFTOOLS_TIFFMETAXML.out.xml_tif
+        .map { meta, xml, tif -> [meta.id, meta, xml] }
+        .join( ch_scale.map { meta, json -> [meta.id, json] } )
+        .join( ch_roi.map { meta, geojson -> [meta.id, geojson] } )
+        .join( EXTRACT_DAPI.out.image.map { meta, dapi -> [meta.id, dapi] } )
+        .branch { id, meta, xml, json, geojson, dapi ->
+            annotated: geojson
+                return [meta, geojson, xml, json]
+            tissue: params.tissue_detection
+                return [meta, dapi, xml]
+            none: true
+                return id
         }
 
-        CELLPOSE (
-            ch_cellpose_input,
-            []
-        )
+    PREPARE_ROI ( ch_roi_input.annotated )
+    TISSUE_DETECT ( ch_roi_input.tissue )
+    ch_versions = ch_versions
+        .mix(PREPARE_ROI.out.versions)
+        .mix(TISSUE_DETECT.out.versions)
 
-        ch_segmentation = CELLPOSE.out.mask
-            .map { meta, it ->
-                return [meta.id, meta + [seg: 'cellpose'], it]
+    // One element per sample: [ id, roi_mask, roi_labels, roi_classes ], with [] placeholders if there is no ROI
+    ch_roi_masks = PREPARE_ROI.out.roi
+        .mix( TISSUE_DETECT.out.roi )
+        .map { meta, mask, labels, classes -> [meta.id, mask, labels, classes] }
+        .mix( ch_roi_input.none.map { id -> [id, [], [], []] } )
+
+    // Segmentation, run per patch
+
+    if (params.segmentation == 'cellpose' && params.membrane_channel != null) {
+        ch_cellpose_pairs = ch_nuclear_image
+            .map { meta, img -> [meta.id, meta, img] }
+            .join( ch_membrane.map { meta, img -> [meta.id, img] } )
+            .multiMap { id, meta, nuclear, membrane ->
+                nuclear:  [meta, nuclear]
+                membrane: [meta, membrane]
             }
-        ch_versions = ch_versions.mix(CELLPOSE.out.versions)
+        PREPROCESS_CELLPOSE ( ch_cellpose_pairs.nuclear, ch_cellpose_pairs.membrane )
+        // Membrane is already combined into the Cellpose input image
+        ch_seg_image = PREPROCESS_CELLPOSE.out.combined
+        ch_seg_membrane = ch_seg_image.map { meta, img -> [meta, []] }
+    } else if (params.segmentation == 'cellpose') {
+        ch_seg_image = ch_nuclear_image
+        ch_seg_membrane = ch_seg_image.map { meta, img -> [meta, []] }
+    } else {
+        ch_seg_image = ch_nuclear_image
+        ch_seg_membrane = ch_membrane
     }
+
+    ch_seg_input = ch_seg_image
+        .map { meta, img -> [meta.id, meta, img] }
+        .join( ch_seg_membrane.map { meta, membrane -> [meta.id, membrane] } )
+        .join( ch_roi_masks.map { id, mask, labels, classes -> [id, mask] } )
+        .map { id, meta, img, membrane, roi_mask -> [meta, img, membrane, roi_mask] }
+
+    PATCH_SEGMENTATION ( ch_seg_input )
+
+    ch_segmentation = PATCH_SEGMENTATION.out.mask
+        .map { meta, mask ->
+            return [meta.id, meta, mask]
+        }
+    ch_versions = ch_versions.mix(PATCH_SEGMENTATION.out.versions)
 
     // Quantification
     SEPARATEIMAGECHANNELS (
@@ -197,15 +231,35 @@ workflow MIHCRO {
     )
     ch_versions = ch_versions.mix(MCQUANT.out.versions)
 
+    ch_render = ch_nuclear_image
+        .map { meta, img -> [meta.id, img] }
+        .join( ch_segmentation )
+        .join( ch_roi_masks.map { id, mask, labels, classes -> [id, mask] } )
+        .map { id, img, meta, mask, roi_mask -> [meta, img, mask, roi_mask] }
+
     RENDER_SEGMENTATION (
-        ch_nuclear_image,
-        ch_quant.mask
+        ch_render
     )
 
     ch_versions = ch_versions.mix(RENDER_SEGMENTATION.out.versions)
 
+    // Add ROI class columns to the cell table where the sample has a ROI
+
+    ch_cells = MCQUANT.out.csv
+        .map { meta, csv -> [meta.id, meta, csv] }
+        .join( ch_roi_masks )
+        .branch { id, meta, csv, mask, labels, classes ->
+            annotate: mask
+                return [meta, csv, mask, labels, classes]
+            plain: true
+                return [meta, csv, []]
+        }
+
+    ANNOTATE_CELLS ( ch_cells.annotate )
+    ch_versions = ch_versions.mix(ANNOTATE_CELLS.out.versions)
+
     RENDER_REPORT (
-        MCQUANT.out.csv,
+        ANNOTATE_CELLS.out.csv.mix(ch_cells.plain),
         ch_markers,
         file("${projectDir}/bin/QCreport.Rmd")
     )

@@ -6,8 +6,7 @@ process RENDER_SEGMENTATION {
     container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:
-    tuple val(meta), path(dapi_image)
-    tuple val(meta2), path(boundary_mask)
+    tuple val(meta), path(dapi_image), path(boundary_mask), path(roi_mask)
 
     output:
     tuple val(meta), path("*_bw_boundaries.tiff"), emit: boundaries_bw
@@ -16,11 +15,13 @@ process RENDER_SEGMENTATION {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def roi_arg = roi_mask ? "--roi_mask ${roi_mask}" : ''
     """
     render_boundaries.py \\
         --dapi_path ${dapi_image} \\
         --mask_path ${boundary_mask} \\
-        --output_prefix ${prefix}
+        --output_prefix ${prefix} \\
+        ${roi_arg}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

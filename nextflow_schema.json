@@ -103,6 +103,44 @@
                 }
             }
         },
+        "patching_and_roi_options": {
+            "title": "Patching and region of interest options",
+            "type": "object",
+            "fa_icon": "fas fa-th",
+            "description": "Parameters for patch-based segmentation and region-of-interest masking",
+            "help_text": "Segmentation runs on overlapping patches in parallel (approach adapted from sopa). Only patches that intersect the region of interest are segmented. The region of interest comes from the samplesheet 'roi' column (QuPath GeoJSON) or, if absent, from automatic tissue detection.",
+            "properties": {
+                "patch_size": {
+                    "type": "integer",
+                    "default": 2048,
+                    "minimum": 0,
+                    "description": "Patch width and height in pixels of the processed image. 0 segments the whole image as a single patch."
+                },
+                "patch_overlap": {
+                    "type": "integer",
+                    "default": 100,
+                    "minimum": 0,
+                    "description": "Overlap between neighbouring patches in pixels. Should be at least about twice the largest cell diameter."
+                },
+                "patch_merge_threshold": {
+                    "type": "number",
+                    "default": 0.5,
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Cells from neighbouring patches are merged when their intersection is at least this fraction of the smaller cell's area."
+                },
+                "tissue_detection": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically detect tissue for samples without a 'roi' GeoJSON, so that background patches are skipped. If false, all patches are segmented."
+                },
+                "roi_exclude_classes": {
+                    "type": "string",
+                    "default": "Ignore*",
+                    "description": "Comma-separated, case-insensitive QuPath class names (globs allowed) whose shapes are subtracted from the region of interest."
+                }
+            }
+        },
         "institutional_config_options": {
             "title": "Institutional config options",
             "type": "object",
@@ -233,6 +271,9 @@
     "allOf": [
         {
             "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/patching_and_roi_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"

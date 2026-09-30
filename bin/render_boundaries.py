@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Written by Niko Thio & Patrick Crock
-# Version 0.0.1
+# Version: 0.0.2 Added optional ROI outline to the RGB overlay
 
 import numpy as np
 import tifffile
@@ -63,7 +63,7 @@ def create_multichannel_tiff(dapi_path, boundary_path, output_path):
     tifffile.imwrite(output_path, stacked)
     print(f"Saved multi-channel TIFF to: {output_path}")
 
-def create_rgb_overlay_tiff(dapi_path, boundary_path, output_path):
+def create_rgb_overlay_tiff(dapi_path, boundary_path, output_path, roi_path=None):
     dapi = tifffile.imread(dapi_path)
     boundary = tifffile.imread(boundary_path)
 
@@ -79,6 +79,12 @@ def create_rgb_overlay_tiff(dapi_path, boundary_path, output_path):
     rgb[..., 2] = dapi_norm  # Blue channel = DAPI
     rgb[..., 0] = (boundary > 0).astype(np.uint8) * 255  # Red channel = boundaries
 
+    if roi_path:
+        roi = tifffile.imread(roi_path, key=0) > 0  # Channel 0 of the ROI mask = inclusion area
+        if roi.shape != dapi.shape:
+            raise ValueError("ROI mask and DAPI images must have the same dimensions")
+        rgb[..., 1] = find_boundaries(roi, mode='inner').astype(np.uint8) * 255  # Green channel = ROI outline
+
     tifffile.imwrite(output_path, rgb, photometric='rgb')
     print(f"Saved rgb TIFF to: {output_path}")
 
@@ -88,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--dapi_path", help="Path to 32-bit grayscale DAPI TIFF image")
     parser.add_argument("--mask_path", help="Path to segmentation boundary TIFF image")
     parser.add_argument("--output_prefix", help="Prefix for saved TIFF files")
+    parser.add_argument("--roi_mask", default=None, help="Optional ROI mask; its outline is drawn in green on the RGB overlay")
     args = parser.parse_args()
 
     boundary_path = f"{args.output_prefix}_temp_boundaries.tiff"
@@ -99,7 +106,7 @@ if __name__ == "__main__":
     print(f"Rendered multichannel grayscale boundary/DAPI TIFF!")
 
     output_rgb = f"{args.output_prefix}_rgb_boundaries.tiff"
-    create_rgb_overlay_tiff(args.dapi_path, boundary_path, output_rgb)
+    create_rgb_overlay_tiff(args.dapi_path, boundary_path, output_rgb, args.roi_mask)
     print(f"Rendered overlaid RGB boundary/DAPI TIFF!")
 
     os.remove(boundary_path)

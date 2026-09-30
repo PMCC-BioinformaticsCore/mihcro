@@ -83,6 +83,14 @@
 
   > Greenwald, N.F., Miller, G., Moen, E. et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning. Nat Biotechnol 40, 555–565 (2022). https://doi.org/10.1038/s41587-021-01094-0
 
+- [sopa](https://github.com/prism-oncology/sopa) (patch-based segmentation, conflict resolution and tissue detection approach)
+
+  > Blampey, Q., Mulder, K., Gardet, M. et al. Sopa: a technology-invariant pipeline for analyses of image-based spatial omics. Nat Commun 15, 4981 (2024). https://doi.org/10.1038/s41467-024-48981-z
+
+- [SciPy](https://scipy.org/)
+
+  > Virtanen, P., Gommers, R., Oliphant, T.E. et al. SciPy 1.0: fundamental algorithms for scientific computing in Python. Nat Methods 17, 261–272 (2020). https://doi.org/10.1038/s41592-019-0686-2
+
 ## Quantification
 
 - [MCQuant](https://github.com/labsyspharm/quantification)

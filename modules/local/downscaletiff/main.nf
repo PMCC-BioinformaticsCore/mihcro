@@ -26,4 +26,17 @@ process DOWNSCALE_OME_TIFF {
         scipy: \$(python -c "import scipy; print(scipy.__version__)")
 END_VERSIONS
     """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.downscaled.ome.tiff
+    touch ${prefix}.downscaled.ome.json
+
+    cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+        tifffile: \$(python -c "import tifffile; print(tifffile.__version__)")
+        scipy: \$(python -c "import scipy; print(scipy.__version__)")
+END_VERSIONS
+    """
 }

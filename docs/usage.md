@@ -8,7 +8,7 @@
 
 ### Samplesheet
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below. The samplesheet file should be called with the `--input` parameter, like so:
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 or 4 columns, and a header row as shown in the examples below. The samplesheet file should be called with the `--input` parameter, like so:
 
 ```bash
 --input '[path to samplesheet file]'
@@ -17,19 +17,48 @@ You will need to create a samplesheet with information about the samples you wou
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
 ```csv
-sample,tiffs,format
-SAMPLE_NAME,/path/to/tiff/directory,tiles
+sample,tiffs,format,roi
+SAMPLE_NAME,/path/to/tiff/directory,tiles,
+SAMPLE_WITH_ROI,/path/to/stitched.ome.tiff,stitched,/path/to/annotations.geojson
 ```
 
-There are three columns to consider when creating your samplesheet:
+These are the columns to consider when creating your samplesheet:
 * The `sample` column holds the names of your samples
 * The `tiffs` column holds paths pointing to your files. This can be a directory containing multiple tiles, or a path direct to a .tiff or .ome.tiff file which has already been stitched.
 * The `format` column, likewise, refers to what format your files are in and relates directly to the `tiff` column. `format` can be one of:
   * `tiles` for tiled inputs
   * `stitched` for pre-stitched, ome-tiff inputs
   * `fused` for legacy HALO outputs (indica-format tiff files)
+* The optional `roi` column holds the path to a QuPath-exported GeoJSON file, or a directory of GeoJSON files, containing the regions of interest to process for that sample. Leave it empty to process the whole tissue (see [Regions of interest](#regions-of-interest)).
 
 Each row of the samplesheet will be run through the pipeline separately. All rows do not need to follow the same format.
+
+### Regions of interest
+
+Segmentation can be restricted to regions of interest (ROIs) drawn in [QuPath](https://qupath.github.io/). Only image patches that intersect the ROI are segmented. Pixels outside the ROI are ignored, and cells whose centroid falls outside the ROI are removed.
+
+To create the GeoJSON:
+
+1. Open the image in QuPath and draw annotations around the areas to include. Any number of shapes is supported, including shapes with holes.
+2. Optionally, classify the annotations (e.g. `Tumor`, `Stroma`, `Necrosis`). The classes are carried through to the cell table and the QC report.
+3. Optionally, draw areas to exclude (folds, bubbles, debris) and give them QuPath's `Ignore*` class. These are subtracted from the ROI (see `--roi_exclude_classes`). If you only draw `Ignore*` shapes, the rest of the image is used.
+4. Export with *File → Export objects as GeoJSON*, choosing annotations only.
+
+> [!IMPORTANT]
+> GeoJSON coordinates must be in full-resolution pixels of the image that the pipeline reads in, so annotate the same image:
+> * `stitched`: the input OME-TIFF.
+> * `fused`: the HALO TIFF.
+> * `tiles`: the stitched image the pipeline writes to `<SAMPLENAME>/qupath_stitch/`.
+>
+> The pipeline rescales the shapes to match downscaling. It stops with an error if the shapes do not overlap the image.
+
+Annotation classes are added to the cell table (`<SAMPLENAME>_<seg>_cells_roi.csv`):
+* One `roi_<Class>` column per class (`TRUE` if the cell's centroid is inside a shape of that class).
+* A `roi_class` column with the class of the smallest shape containing the cell, so that nested annotations (e.g. `Necrosis` inside `Tumor`) take precedence.
+
+The ROI masks are also published, so they can be reused for masking downstream (see [output docs](output.md)).
+
+For samples without a GeoJSON, tissue is detected automatically from the DAPI channel (see the *Patching and regions of interest* options below).
 
 ### Markerfile
 
@@ -79,6 +108,25 @@ Sometimes, your panel may have the DNA stain stored under a name other than DAPI
 
 Additionally, you may wish to use a membrane marker in your panel for segmentation alongside the nuclear marker. If this is the case, use `--membrane_channel` to specify the channel to extract for membrane definition:
 - `--membrane_channel` (string)
+
+</details>
+
+<details>
+<summary><h4>Patching and regions of interest</h4></summary>
+
+Segmentation runs on overlapping patches of the image, one task per patch, so large images are segmented in parallel. This approach is adapted from [sopa](https://github.com/prism-oncology/sopa).
+
+Patches that do not intersect the region of interest are skipped. The region of interest comes from the samplesheet `roi` column, or from automatic tissue detection if that column is empty.
+
+When all patches are done, the patch masks are stitched back into a single mask. Two steps handle cells in the overlap between patches:
+* A cell cut by a patch edge is dropped when the neighbouring patch sees it whole.
+* Two cells from neighbouring patches are merged when they overlap by at least `--patch_merge_threshold` of the smaller cell's area.
+
+- `--patch_size` (integer, default: `2048`): Patch width and height in pixels of the processed image (1 px = 1 µm with the default downscaling). `0` segments the whole image as a single patch. Smaller patches give more parallel tasks and skip more background, at the cost of more per-task overhead.
+- `--patch_overlap` (integer, default: `100`): Overlap between neighbouring patches in pixels. This should be at least about twice the largest cell diameter.
+- `--patch_merge_threshold` (number, default: `0.5`): Overlap fraction above which cells from neighbouring patches are merged.
+- `--tissue_detection` (boolean, default: `true`): For samples without a `roi` GeoJSON, detect tissue from the DAPI channel and skip background patches. Set to `false` to segment every patch.
+- `--roi_exclude_classes` (string, default: `Ignore*`): Comma-separated QuPath class names (case-insensitive, `*` wildcards allowed) whose shapes are subtracted from the region of interest.
 
 </details>
 

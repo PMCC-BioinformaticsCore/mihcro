@@ -32,6 +32,7 @@ workflow NFCORE_MIHCRO {
     take:
     samplesheet // channel: samplesheet read in from --input
     markers // channel: markers file [[id:markers], params.markers]
+    roi // channel: [ meta, [ QuPath GeoJSON files ] ] from the samplesheet 'roi' column
 
     main:
 
@@ -40,7 +41,8 @@ workflow NFCORE_MIHCRO {
     //
     MIHCRO (
         samplesheet,
-        markers
+        markers,
+        roi
     )
 }
 /*
@@ -69,7 +71,8 @@ workflow {
     //
     NFCORE_MIHCRO (
         PIPELINE_INITIALISATION.out.samplesheet,
-        PIPELINE_INITIALISATION.out.markers
+        PIPELINE_INITIALISATION.out.markers,
+        PIPELINE_INITIALISATION.out.roi
     )
     //
     // SUBWORKFLOW: Run completion tasks

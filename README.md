@@ -13,6 +13,8 @@ The purpose of the pipeline is to convert tiled or stitched multi-channel micros
 
 The segmentation model to be used can be selected (currently mesmer is default, and cellpose is also available). By default, the pipeline performs segmentation on the DAPI marker, but there is also the option to specify a membrane marker with which to segment whole cells. There are also optional preprocessing steps prior to segmentation for speed and accuracy, including DAPI background removal, Otsu thresholding, and downscaling to 1um/pixel scale.
 
+Segmentation runs on overlapping image patches in parallel, following the approach of [sopa](https://github.com/prism-oncology/sopa). Only patches inside the region of interest are processed. The region of interest comes from QuPath-annotated shapes (exported as GeoJSON), or from automatic tissue detection if no annotations are given. Annotation classes (e.g. tumour, stroma, necrosis) are carried through to the cell table and the QC report.
+
 The pipeline returns a processed TIFF file, a segmented image mask and summary, a cell x feature spreadsheet, as well as an HTML report on the cell x feature data, including segmentation summary statistics, marker intensity summary statistics, and UMAP reduction and clustering.
 
 The pipeline accepts three main formats of input:
@@ -32,11 +34,14 @@ First, prepare a samplesheet that follows the format below:
 `example_samplesheet.csv`:
 
 ```csv
-sample,tiffs,format
-EXAMPLE_SAMPLE_NAME,/path/to/tiff/directory,tiles
+sample,tiffs,format,roi
+EXAMPLE_SAMPLE_NAME,/path/to/tiff/directory,tiles,
+EXAMPLE_ANNOTATED_SAMPLE,/path/to/stitched.ome.tiff,stitched,/path/to/qupath_annotations.geojson
 ```
 
 Each row represents a directory which contains several .tiff tiles, or a single stitched .tiff or .ome.tiff.
+
+The optional `roi` column points to a QuPath-exported GeoJSON file (or a directory of them) with the regions to analyse. See the [usage documentation](docs/usage.md#regions-of-interest).
 
 The `format` column must be one of the following for each sample:
 * `tiles` for tiled inputs
@@ -79,8 +84,9 @@ For more details and further functionality, please refer to the [usage documenta
 
 The pipeline returns:
 * A processed TIFF file in the OME-TIFF format
-* A segmented image mask and summary image of the segmentation output, with DAPI in blue and segmentation borders in red.
-* A cell x feature spreadsheet output by MCQuant
+* A segmented image mask and summary image of the segmentation output, with DAPI in blue, segmentation borders in red and the region of interest in green.
+* Region-of-interest masks aligned to the processed image, for reuse in downstream masking
+* A cell x feature spreadsheet output by MCQuant, plus a copy annotated with region-of-interest classes
 * An HTML report on the cell x feature data, including:
   * Segmentation summary statistics and basic QC
   * Marker intensity summary statistics

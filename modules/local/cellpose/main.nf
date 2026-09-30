@@ -93,4 +93,10 @@ process PREPROCESS_CELLPOSE {
     stacked = np.stack([membrane_img, nuclear_img], axis=0)
     tifffile.imwrite("${prefix}_combined.tif", stacked)
     """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_combined.tif
+    """
  }

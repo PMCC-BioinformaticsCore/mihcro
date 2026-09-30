@@ -4,6 +4,7 @@ params:
   samplename:
   cellbyfeature:
   markerfile:
+  roiclasses: ""
 output:
   html_document:
     toc: true
@@ -565,4 +566,95 @@ VlnPlot(
 )
 ```
 
+```{r roi-setup, include=FALSE}
+# Region-of-interest outputs, present when the sample had QuPath annotations or tissue detection
+has_roi <- "roi_class" %in% colnames(mesmer_data)
+roi_classes <- NULL
+if (has_roi && nzchar(params$roiclasses) && file.exists(params$roiclasses)) {
+  roi_classes <- read.csv(params$roiclasses)
+  roi_classes <- roi_classes[which(!as.logical(roi_classes$excluded) & roi_classes$index > 0), ]
+  roi_classes$column <- make.names(roi_classes$column)
+}
+```
 
+```{r roi-summary, echo=FALSE, results='asis', eval=has_roi}
+cat("# Regions of interest {.tabset}\n\n## Summary\n\n")
+
+primary_counts <- mesmer_data %>% count(roi_class, name = "Cells (primary region)")
+
+if (!is.null(roi_classes)) {
+  roi_summary <- data.frame(
+    Region = roi_classes$class,
+    `Area (mm²)` = round(roi_classes$area_mm2, 3),
+    `Cells in region` = sapply(roi_classes$column, function(col) {
+      if (col %in% colnames(mesmer_data)) sum(as.logical(mesmer_data[[col]]), na.rm = TRUE) else NA
+    }),
+    check.names = FALSE
+  )
+  roi_summary$`Cells per mm²` <- round(roi_summary$`Cells in region` / roi_summary$`Area (mm²)`, 1)
+  roi_summary <- roi_summary %>% left_join(primary_counts, by = c("Region" = "roi_class"))
+} else {
+  roi_summary <- primary_counts %>% rename(Region = roi_class)
+}
+
+print(
+  roi_summary %>%
+    kbl(caption = "Cells per region. A cell counts towards every region containing its centroid; its primary region is the smallest one.") %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+)
+```
+
+```{r roi-spatial, echo=FALSE, results='asis', eval=has_roi, fig.dim=c(10,10)}
+cat("\n\n## Spatial distribution\n\n")
+
+roi_plot_df <- mesmer_data %>% select(X_centroid, Y_centroid, roi_class)
+if (nrow(roi_plot_df) > 200000) {
+  roi_plot_df <- roi_plot_df[sample(nrow(roi_plot_df), 200000), ]
+}
+
+print(
+  ggplot(roi_plot_df, aes(x = X_centroid, y = Y_centroid, color = roi_class)) +
+    geom_point(size = 0.2) +
+    coord_fixed() +
+    scale_y_reverse() +
+    theme_minimal() +
+    guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(title = "Cell centroids by primary region", x = "X (px)", y = "Y (px)", color = "Region")
+)
+```
+
+```{r roi-markers, echo=FALSE, results='asis', eval=has_roi, fig.dim=c(12,8)}
+cat("\n\n## Marker intensity by region\n\n")
+
+roi_lookup <- data.frame(CellID = as.character(mesmer_data$CellID), roi_class = mesmer_data$roi_class)
+clr_roi <- df_clr_mesmer %>%
+  mutate(CellID = as.character(CellID)) %>%
+  inner_join(roi_lookup, by = "CellID")
+
+print(
+  ggplot(clr_roi, aes(x = roi_class, y = Value_CLR, fill = roi_class)) +
+    geom_boxplot(outlier.size = 0.2) +
+    facet_wrap(~Marker, scales = "free_y", ncol = 4) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "CLR-transformed marker intensity by primary region", x = NULL, y = "intensity", fill = "Region")
+)
+```
+
+```{r roi-clusters, echo=FALSE, results='asis', eval=has_roi, fig.dim=c(10,6)}
+cat("\n\n## Cluster composition by region\n\n")
+
+roi_composition <- seu_mesmer[[]] %>%
+  select(roi_class, cluster = PROT_snn_res.0.5) %>%
+  count(roi_class, cluster) %>%
+  group_by(roi_class) %>%
+  mutate(fraction = n / sum(n))
+
+print(
+  ggplot(roi_composition, aes(x = roi_class, y = fraction, fill = cluster)) +
+    geom_col() +
+    scale_fill_manual(values = rep_len(discrete.pal, length(unique(roi_composition$cluster)))) +
+    theme_minimal() +
+    labs(title = "Cluster composition per primary region (resolution = 0.5)", x = NULL, y = "fraction of cells", fill = "Cluster")
+)
+```
