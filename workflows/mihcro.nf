@@ -183,10 +183,19 @@ workflow MIHCRO {
     RENDER_SEGMENTATION ( ch_render )
     ch_versions = ch_versions.mix(RENDER_SEGMENTATION.out.versions)
 
+    // Report input: cell table, ROI classes, pixel-size metadata and patch table per sample
+    ch_report = ANNOTATE_CELLS.out.csv
+        .mix(ch_cells.plain)
+        .map { meta, csv, classes -> [meta.id, meta, csv, classes] }
+        .join( PREPROCESS_IMAGE.out.scale.map { meta, json -> [meta.id, json] } )
+        .join( PATCH_SEGMENTATION.out.table.map { meta, table -> [meta.id, table] } )
+        .map { id, meta, csv, classes, json, table -> [meta, csv, classes, json, table] }
+
     RENDER_REPORT (
-        ANNOTATE_CELLS.out.csv.mix(ch_cells.plain),
+        ch_report,
         ch_markers,
-        file("${projectDir}/bin/QCreport.Rmd")
+        file("${projectDir}/bin/QCreport.Rmd"),
+        file("${projectDir}/bin/QCreport_resolution.Rmd")
     )
     ch_versions = ch_versions.mix(RENDER_REPORT.out.versions)
 

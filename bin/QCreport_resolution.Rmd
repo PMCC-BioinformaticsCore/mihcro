@@ -1,0 +1,95 @@
+
+## resolution = `r resolution` {-}
+
+```{r}
+cluster_col <- paste0("PROT_snn_res.", resolution)
+seu$seurat_clusters <- seu[[cluster_col]]
+Idents(seu) <- "seurat_clusters"
+pal <- cluster_palette(levels(Idents(seu)))
+```
+
+```{r, fig.dim=c(10,10)}
+DimPlot(seu, reduction = umap_red, label = TRUE, cols = pal)
+ImageDimPlot(seu, fov = "myfov", size = 1, cols = pal) + scale_y_reverse()
+```
+
+**Cluster sizes**
+
+```{r}
+cluster_sizes <- data.frame(cluster = seu[[cluster_col]] %>% dplyr::pull()) %>%
+  count(cluster, name = "cell.count") %>%
+  mutate(pct = 100 * cell.count / sum(cell.count), label = paste0(round(pct, 2), "%"))
+
+ggplot(cluster_sizes, aes(x = cell.count, y = reorder(cluster, cell.count))) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = label), hjust = -0.2, size = 3.5) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x = "Cell count", y = "Cluster")
+```
+
+```{r}
+avg <- AverageExpression(seu, assays = "PROT", group.by = "seurat_clusters", slot = "data")$PROT
+cluster_labels <- colnames(avg) %>% gsub(pattern = "^g", replacement = "")
+
+# Mean marker intensity per cluster, also written out for downstream use
+write.csv(
+  as.data.frame(avg) %>% rownames_to_column("Marker"),
+  file = paste0(samplename, "_res.", resolution, "_cluster_mean_intensity.csv"),
+  row.names = FALSE, quote = FALSE
+)
+```
+
+**Average intensity (scaled row-wise)**
+
+```{r}
+pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = cluster_labels, scale = "row")
+```
+
+```{r}
+# Violin grid: aim for ~21 cluster-violins per row of plots, 10/21 in per violin and 10/3 in per row
+n_clusters <- ncol(avg)
+n_plot_markers <- nrow(avg)
+plots_per_row <- ceiling(max(n_clusters, 21) / n_clusters)
+eff.fig.width <- (plots_per_row * n_plot_markers) * (10 / 21)
+eff.fig.height <- ceiling(n_plot_markers / plots_per_row) * (10 / 3)
+```
+
+```{r, fig.width=eff.fig.width, fig.height=eff.fig.height}
+VlnPlot(
+  seu,
+  features = marker_cols,
+  group.by = "seurat_clusters",
+  pt.size = 0,
+  ncol = plots_per_row,
+  same.y.lims = TRUE,
+  cols = pal
+)
+```
+
+**Average of scaled intensity (colour scaled column-wise)**
+
+Scaled intensity centres and scales each marker's intensity. The heatmap colour is then scaled per cluster, which helps pinpoint the markers that stand out in each cluster.
+
+```{r}
+avg_scaled <- AverageExpression(seu, assays = "PROT", group.by = "seurat_clusters", slot = "scale.data")$PROT
+pheatmap(avg_scaled, cluster_rows = FALSE, cluster_cols = FALSE,
+         labels_col = colnames(avg_scaled) %>% gsub(pattern = "^g", replacement = ""), scale = "column")
+```
+
+```{r, results='asis', eval=has_roi, fig.dim=c(10,6)}
+cat("**Cluster composition by region**\n\n")
+roi_composition <- seu[[]] %>%
+  select(roi_class, cluster = all_of(cluster_col)) %>%
+  count(roi_class, cluster) %>%
+  group_by(roi_class) %>%
+  mutate(fraction = n / sum(n))
+
+print(
+  ggplot(roi_composition, aes(x = roi_class, y = fraction, fill = cluster)) +
+    geom_col() +
+    scale_fill_manual(values = pal) +
+    theme_minimal() +
+    labs(x = NULL, y = "fraction of cells", fill = "Cluster")
+)
+```

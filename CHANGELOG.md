@@ -29,6 +29,7 @@ Major update to nfcore/microscopy. Added ROI specification, and patch-wise segme
 * `PREPROCESS_CELLPOSE` removed: for two-channel Cellpose, `MAKE_PATCHES` writes each patch as `[membrane, nuclear]`.
 * Stitched/fused inputs are checked to be a single TIFF during samplesheet validation.
 * `RESOLVE_PATCHES` requests 1 CPU / 16 GB instead of `process_medium`.
+* QC report reorganised and polished.
 
 ### `Fixed`
 

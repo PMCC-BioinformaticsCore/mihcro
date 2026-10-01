@@ -22,7 +22,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and produces th
 
 - `<SAMPLENAME>/`
   - `reports/`
-    - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`. If the sample has a region of interest, the report includes a *Regions of interest* section with cell counts, density, marker intensity and cluster composition per annotation class.
+    - The HTML output from the R analysis step: `<SAMPLENAME>_report.html`.
   - `image_downscale/`
     - The processed image used for segmentation and quantification, containing the markerfile channels at 1 µm/pixel: `<SAMPLENAME>.downscaled.ome.tiff`
     - With `--downscale_mode none` this is instead written at the input resolution to `image_processed/<SAMPLENAME>.processed.ome.tiff`
@@ -123,6 +123,8 @@ This features, from left to right: the raw DAPI channel, the processed DAPI chan
 
 In brief, the QC report outputs the following:
 
+- An overview at the top, with a sample summary (cells analysed, segmentation method, pixel and image size, markers used, region of interest and patches segmented), the workflow parameters used for the run, and notices for markers not found or cells removed.
+- If the sample has a region of interest, a *Regions of interest* section with cell counts and density per annotation class, a spatial map and marker intensity by region.
 - Tabular QC and statistical overviews for:
   - Segmentation outputs (e.g. cell area, eccentricity, etc.)
   - Inferred marker intensity from MCQuant (raw, log-transformed, and CLR-transformed)
