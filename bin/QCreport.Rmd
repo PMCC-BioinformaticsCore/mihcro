@@ -119,6 +119,17 @@ cluster_palette <- function(levels) {
   colours <- if (n <= length(base_pal)) base_pal[seq_len(n)] else c(base_pal, grDevices::hcl.colors(n - length(base_pal), "Dynamic"))
   setNames(colours, levels)
 }
+
+# pheatmap opens and closes a scratch device internally, which leaves the outer chunk's device
+# current when called from a child document; build the heatmap silently and draw it on the caller's device
+draw_pheatmap <- function(...) {
+  dev <- grDevices::dev.cur()
+  ph <- pheatmap(..., silent = TRUE)
+  if (dev != 1) grDevices::dev.set(dev)
+  grid::grid.newpage()
+  grid::grid.draw(ph$gtable)
+  invisible(ph)
+}
 ```
 
 # Overview

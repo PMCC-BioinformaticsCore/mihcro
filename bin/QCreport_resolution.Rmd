@@ -43,7 +43,7 @@ write.csv(
 **Average intensity (scaled row-wise)**
 
 ```{r}
-pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = cluster_labels, scale = "row")
+draw_pheatmap(avg, cluster_rows = FALSE, cluster_cols = FALSE, labels_col = cluster_labels, scale = "row")
 ```
 
 ```{r}
@@ -73,8 +73,8 @@ Scaled intensity centres and scales each marker's intensity. The heatmap colour 
 
 ```{r}
 avg_scaled <- AverageExpression(seu, assays = "PROT", group.by = "seurat_clusters", slot = "scale.data")$PROT
-pheatmap(avg_scaled, cluster_rows = FALSE, cluster_cols = FALSE,
-         labels_col = colnames(avg_scaled) %>% gsub(pattern = "^g", replacement = ""), scale = "column")
+draw_pheatmap(avg_scaled, cluster_rows = FALSE, cluster_cols = FALSE,
+              labels_col = colnames(avg_scaled) %>% gsub(pattern = "^g", replacement = ""), scale = "column")
 ```
 
 ```{r, results='asis', eval=has_roi, fig.dim=c(10,6)}
