@@ -12,7 +12,7 @@ Outputs (for --prefix P):
   P.json                                                              scale metadata (original/final pixel size)
   P_dapi.tif, P_membrane.tif, P_AF.tif                                single channels, if requested
 """
-# Version: 2.0.0
+# Version: 2.0.1
 
 import argparse
 import csv
@@ -197,17 +197,23 @@ def downsample(channel, factor):
     return out
 
 
-def read_channels(level, indices, n_channels):
+def read_channels(level, indices, n_channels, factor):
     """
-    Read only the requested channels of one pyramid level, as a list of 2D arrays.
+    Read only the requested channels of one pyramid level and downsample each by `factor` as soon as it is
+    read, so at most one channel is held at the source level's resolution (peak memory).
     Planar images (one page per channel) are read page by page; interleaved images are read whole.
     """
     keyframe = level.keyframe
     planar = len(level.pages) == n_channels and len(keyframe.shape) == 2
     if planar:
-        return {i: np.squeeze(level.asarray(key=i)) for i in sorted(set(indices))}
+        return {i: downsample(np.squeeze(level.asarray(key=i)), factor) for i in sorted(set(indices))}
     data = normalize_to_cyx(level.asarray(), level.axes)
-    return {i: data[i] for i in sorted(set(indices))}
+    channels = {i: downsample(data[i], factor) for i in sorted(set(indices))}
+    if factor == 1:
+        # Copy the views so the full level array can be freed
+        channels = {i: np.ascontiguousarray(ch) for i, ch in channels.items()}
+    del data
+    return channels
 
 
 def main():
@@ -270,9 +276,7 @@ def main():
         print(f"Using level {choice['level']} with integer downsampling x{factor} -> {choice['final_mpp']} µm/px")
 
         needed = [i for i, _ in selected] + list(extra.values())
-        channels = read_channels(level, needed, n_channels)
-
-    channels = {i: downsample(ch, factor) for i, ch in channels.items()}
+        channels = read_channels(level, needed, n_channels, factor)
 
     # Processed image: marker channels in markerfile order, named by marker
     indices, names = zip(*selected)
