@@ -23,6 +23,8 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
+options(future.globals.maxSize = Inf)
+
 library(dplyr)
 library(ggplot2)
 library(tidyr)
