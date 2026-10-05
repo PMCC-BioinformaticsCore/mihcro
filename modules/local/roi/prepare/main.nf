@@ -5,7 +5,7 @@ process PREPARE_ROI {
     container "ghcr.io/patrickcrock/mihcro_python:1.1"
 
     input:
-    tuple val(meta), path(geojson, stageAs: 'geojson/roi*.geojson'), path(xml), path(scale_json)
+    tuple val(meta), path(geojson, stageAs: 'geojson/roi*.geojson'), path(xml), path(scale_json), path(tissue_image)
 
     output:
     tuple val(meta), path("*_roi_mask.ome.tif"), path("*_roi_labels.tif"), path("*_roi_classes.csv"), emit: roi
@@ -20,6 +20,8 @@ process PREPARE_ROI {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def scale_arg = scale_json ? "--scale_json ${scale_json}" : ''
+    // With a nuclear image, tissue detection also runs inside each annotation (--roi_tissue_detection)
+    def tissue_arg = tissue_image ? "--tissue_image ${tissue_image}" : ''
     """
     export MPLCONFIGDIR=./matplotlib
 
@@ -28,7 +30,8 @@ process PREPARE_ROI {
         --xml ${xml} \\
         --prefix ${prefix} \\
         --geojson ${geojson} \\
-        ${scale_arg}
+        ${scale_arg} \\
+        ${tissue_arg}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

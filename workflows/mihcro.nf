@@ -102,7 +102,7 @@ workflow MIHCRO {
         .join( ch_roi.map { meta, geojson -> [meta.id, geojson] } )
         .branch { id, meta, xml, json, dapi, geojson ->
             annotated: geojson
-                return [meta, geojson, xml, json]
+                return [meta, geojson, xml, json, params.roi_tissue_detection ? dapi : []]
             tissue: params.tissue_detection
                 return [meta, dapi, xml]
             none: true

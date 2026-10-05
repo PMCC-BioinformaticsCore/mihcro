@@ -44,6 +44,7 @@ process RENDER_REPORT {
         ['Patching and ROI', 'patch_overlap', params.patch_overlap],
         ['Patching and ROI', 'patch_merge_threshold', params.patch_merge_threshold],
         ['Patching and ROI', 'tissue_detection', params.tissue_detection],
+        ['Patching and ROI', 'roi_tissue_detection', params.roi_tissue_detection],
         ['Patching and ROI', 'roi_exclude_classes', params.roi_exclude_classes],
     ]
     def run_info_args = run_info.flatten()

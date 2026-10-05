@@ -155,6 +155,16 @@
                     "default": true,
                     "description": "Automatically detect tissue for samples without a 'roi' GeoJSON, so that background patches are skipped. If false, all patches are segmented."
                 },
+                "roi_tissue_detection": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "For samples with a GeoJSON, also run tissue detection inside each annotation shape separately and keep only the tissue. Useful when shapes mark broad regions or separate sections of a multi-sample slide."
+                },
+                "roi_flip_y": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Mirror the GeoJSON y coordinates across the image height. Use for annotations whose origin is the bottom-left (y pointing up) instead of QuPath's top-left."
+                },
                 "roi_exclude_classes": {
                     "type": "string",
                     "default": "Ignore*",

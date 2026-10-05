@@ -16,7 +16,7 @@ Both modes write the same set of outputs so the rest of the pipeline is agnostic
 """
 
 # Written by Patrick Crock
-# Version: 0.0.1
+# Version: 0.0.3
 
 import argparse
 import copy
@@ -132,8 +132,12 @@ def polygon_area(rings):
     return max(ring_area(rings[0]) - sum(ring_area(r) for r in rings[1:]), 0.0)
 
 
-def load_shapes(geojson_paths, scale, exclude_patterns):
-    """Read all polygonal annotations, rescaled into processed-image pixel coordinates."""
+def load_shapes(geojson_paths, scale, exclude_patterns, flip_height=None):
+    """
+    Read all polygonal annotations, rescaled into processed-image pixel coordinates.
+    With flip_height (the processed image height), y is mirrored (y -> height - y) for GeoJSON whose origin is
+    the bottom-left (y up) rather than QuPath's top-left (y down).
+    """
     shapes = []
     skipped = {}
     for path in geojson_paths:
@@ -154,7 +158,8 @@ def load_shapes(geojson_paths, scale, exclude_patterns):
             name = feature_class(props)
             excluded = any(fnmatch.fnmatch(name.lower(), p.lower()) for p in exclude_patterns)
             for rings in polygons:
-                scaled = [[[x * scale, y * scale] for x, y, *_ in ring] for ring in rings if len(ring) >= 3]
+                scaled = [[[x * scale, flip_height - y * scale if flip_height else y * scale] for x, y, *_ in ring]
+                          for ring in rings if len(ring) >= 3]
                 if not scaled:
                     continue
                 shapes.append({
@@ -258,28 +263,40 @@ def masks_from_shapes(shapes, height, width):
 # Tissue detection (adapted from sopa.segmentation.tissue, 'staining' mode)
 # ---------------------------------------------------------------------------
 
-def detect_tissue(image_path, height, width, downsample, blur_radius, drop_threshold, expand_ratio):
+def tissue_thumbnail(image_path, height, width, downsample):
+    """Block-mean thumbnail of the nuclear image used for tissue detection."""
     img = np.squeeze(tifffile.imread(image_path)).astype(np.float32)
     if img.ndim == 3:
         img = img.max(axis=0)
     if img.shape != (height, width):
         sys.exit(f"ERROR: tissue image shape {img.shape} does not match processed image ({height}, {width})")
     img = np.nan_to_num(img, nan=0.0, posinf=0.0, neginf=0.0)
+    return downscale_local_mean(img, (downsample, downsample))
 
-    thumb = downscale_local_mean(img, (downsample, downsample))
-    del img
+
+def tissue_mask(thumb, blur_radius, drop_threshold, expand_ratio, region=None):
+    """
+    Tissue mask on a thumbnail (sopa 'staining' mode): saturate, median blur, Otsu, open/close, drop small
+    components, dilate. With `region` (bool, same shape) the thresholds are computed from the pixels inside the
+    region only and the result is clipped to it, so each region gets its own threshold.
+    Returns None if no tissue could be separated.
+    """
+    inside = region if region is not None else np.ones(thumb.shape, dtype=bool)
+    values = thumb[inside]
+    if values.size == 0:
+        return None
 
     # Saturate everything above a fifth of the 90th percentile, as in sopa's staining mode
-    upper = np.quantile(thumb, 0.9) / 5
+    upper = np.quantile(values, 0.9) / 5
     if upper <= 0:
-        upper = thumb.max() if thumb.max() > 0 else 1.0
-    thumb = (np.clip(thumb, 0, upper) / upper * 255).astype(np.uint8)
+        upper = values.max() if values.max() > 0 else 1.0
+    scaled = (np.clip(np.where(inside, thumb, 0), 0, upper) / upper * 255).astype(np.uint8)
 
     footprint = disk(blur_radius)
-    thumb = median(thumb, footprint)
-    if thumb.min() == thumb.max():
+    scaled = median(scaled, footprint)
+    if scaled[inside].min() == scaled[inside].max():
         return None
-    mask = thumb > threshold_otsu(thumb)
+    mask = (scaled > threshold_otsu(scaled[inside])) & inside
     mask = ndi.binary_opening(mask, structure=footprint)
     mask = ndi.binary_closing(mask, structure=footprint)
 
@@ -293,9 +310,44 @@ def detect_tissue(image_path, height, width, downsample, blur_radius, drop_thres
     radius = int(math.ceil(expand_ratio * math.sqrt(mask.sum() / math.pi)))
     if radius > 0:
         mask = ndi.binary_dilation(mask, structure=disk(radius))
+    return mask & inside
 
-    full = np.repeat(np.repeat(mask, downsample, axis=0), downsample, axis=1)[:height, :width]
-    return full
+
+def upsample_mask(mask, downsample, height, width):
+    return np.repeat(np.repeat(mask, downsample, axis=0), downsample, axis=1)[:height, :width]
+
+
+def detect_tissue(image_path, height, width, downsample, blur_radius, drop_threshold, expand_ratio):
+    thumb = tissue_thumbnail(image_path, height, width, downsample)
+    mask = tissue_mask(thumb, blur_radius, drop_threshold, expand_ratio)
+    return None if mask is None else upsample_mask(mask, downsample, height, width)
+
+
+def detect_tissue_per_shape(image_path, shapes, height, width, downsample, blur_radius, drop_threshold, expand_ratio):
+    """
+    Run tissue detection separately inside each (non-excluded) shape, e.g. one per section of a multi-sample slide,
+    and return the union of the per-shape tissue masks at full resolution. A shape where detection fails keeps
+    its whole area.
+    """
+    thumb = tissue_thumbnail(image_path, height, width, downsample)
+    th_h, th_w = thumb.shape
+    tissue = np.zeros(thumb.shape, dtype=bool)
+    for i, shape in enumerate(s for s in shapes if not s["excluded"]):
+        rings = [[[x / downsample, y / downsample] for x, y in ring] for ring in shape["rings"]]
+        raster = rasterize_shape(rings, th_h, th_w)
+        if raster is None:
+            continue
+        y0, x0, region = raster
+        window = (slice(y0, y0 + region.shape[0]), slice(x0, x0 + region.shape[1]))
+        found = tissue_mask(thumb[window], blur_radius, drop_threshold, expand_ratio, region=region)
+        fraction = found.sum() / region.sum() if found is not None and region.any() else 0.0
+        if found is None or fraction < 0.01:
+            print(f"WARNING: tissue detection failed inside shape {i} ({shape['class']}); keeping the whole shape")
+            found = region
+        else:
+            print(f"Shape {i} ({shape['class']}): tissue covers {fraction * 100:.1f}% of the shape")
+        tissue[window] |= found
+    return upsample_mask(tissue, downsample, height, width)
 
 
 # ---------------------------------------------------------------------------
@@ -384,12 +436,15 @@ def main():
     parser = argparse.ArgumentParser(description="Build ROI masks from QuPath GeoJSON or automatic tissue detection.")
     parser.add_argument("--xml", required=True, help="OME-XML of the processed image (gives shape and pixel size)")
     parser.add_argument("--prefix", required=True, help="Output file prefix")
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--geojson", nargs="+", help="QuPath-exported GeoJSON file(s)")
-    source.add_argument("--tissue_image", help="Nuclear image for automatic tissue detection")
+    parser.add_argument("--geojson", nargs="+", help="QuPath-exported GeoJSON file(s)")
+    parser.add_argument("--tissue_image",
+                        help="Nuclear image for automatic tissue detection: over the whole image, or with --geojson, "
+                             "separately inside each shape")
     parser.add_argument("--scale_json", default=None, help="Scale metadata json written by preprocess_image.py")
     parser.add_argument("--exclude", default="Ignore*",
                         help="Comma-separated, case-insensitive class name globs whose shapes are subtracted from the ROI")
+    parser.add_argument("--flip_y", action="store_true",
+                        help="Mirror GeoJSON y coordinates (y -> image height - y) for annotations with a bottom-left origin")
     parser.add_argument("--tissue_downsample", type=int, default=16, help="Downsampling factor for tissue detection")
     parser.add_argument("--tissue_blur_radius", type=int, default=5, help="Median blur / morphology radius (thumbnail px)")
     parser.add_argument("--tissue_drop_threshold", type=float, default=0.01,
@@ -397,6 +452,8 @@ def main():
     parser.add_argument("--tissue_expand_ratio", type=float, default=0.05,
                         help="Dilate tissue by this fraction of its equivalent radius")
     args = parser.parse_args()
+    if not args.geojson and not args.tissue_image:
+        parser.error("give --geojson, --tissue_image, or both")
 
     height, width, mpp = read_image_info(args.xml)
     print(f"Processed image: {height} x {width} px, {mpp} µm/px")
@@ -405,7 +462,9 @@ def main():
         scale = coordinate_scale(args.scale_json, mpp)
         print(f"Scaling GeoJSON coordinates by {scale:.6f}")
         exclude = [p.strip() for p in args.exclude.split(",") if p.strip()]
-        shapes = load_shapes(args.geojson, scale, exclude)
+        if args.flip_y:
+            print("Flipping GeoJSON y coordinates (bottom-left origin)")
+        shapes = load_shapes(args.geojson, scale, exclude, flip_height=height if args.flip_y else None)
         if not shapes:
             sys.exit("ERROR: no polygon annotations found in the supplied GeoJSON file(s)")
         inclusion, class_masks, labels, shape_counts, excluded_areas = masks_from_shapes(shapes, height, width)
@@ -415,8 +474,17 @@ def main():
             sys.exit(
                 f"ERROR: the ROI does not overlap the processed image ({width} x {height} px). Scaled shape bounds are "
                 f"x=[{min(xs):.0f}, {max(xs):.0f}], y=[{min(ys):.0f}, {max(ys):.0f}]. Check that the GeoJSON was "
-                f"exported from the full-resolution image that the pipeline ingests."
+                f"exported from the full-resolution image that the pipeline ingests, and whether its y axis is flipped "
+                f"(--roi_flip_y)."
             )
+        if args.tissue_image:
+            # Tissue detection on top of the annotations: keep only the tissue inside each shape
+            tissue = detect_tissue_per_shape(args.tissue_image, shapes, height, width, args.tissue_downsample,
+                                             args.tissue_blur_radius, args.tissue_drop_threshold, args.tissue_expand_ratio)
+            inclusion &= tissue
+            labels[~inclusion] = 0
+            for m in class_masks.values():
+                m &= inclusion
     else:
         mask = detect_tissue(args.tissue_image, height, width, args.tissue_downsample, args.tissue_blur_radius,
                              args.tissue_drop_threshold, args.tissue_expand_ratio)

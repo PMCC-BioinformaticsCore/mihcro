@@ -157,6 +157,8 @@ When all patches are done, the patch masks are stitched back into a single mask.
 - `--patch_overlap` (integer, default: `100`): Overlap between neighbouring patches in pixels. This should be at least about twice the largest cell diameter.
 - `--patch_merge_threshold` (number, default: `0.5`): Overlap fraction above which cells from neighbouring patches are merged.
 - `--tissue_detection` (boolean, default: `true`): For samples without a `roi` GeoJSON, detect tissue from the DAPI channel and skip background patches. Set to `false` to segment every patch.
+- `--roi_tissue_detection` (boolean, default: `false`): For samples with a GeoJSON, also run tissue detection inside each annotation shape, with its own threshold per shape, and keep only the tissue. Use this when annotations mark broad regions or separate the sections of a multi-sample slide, rather than tracing the tissue itself. Classes still come from the annotations.
+- `--roi_flip_y` (boolean, default: `false`): Mirror the GeoJSON y coordinates across the image height. QuPath exports use a top-left origin and never need this; set it for annotations from tools that use a bottom-left origin (y pointing up), which otherwise land upside-down on the image.
 - `--roi_exclude_classes` (string, default: `Ignore*`): Comma-separated QuPath class names (case-insensitive, `*` wildcards allowed) whose shapes are subtracted from the region of interest.
 
 </details>

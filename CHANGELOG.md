@@ -18,6 +18,8 @@ Major update to nfcore/microscopy. Added ROI specification, and patch-wise segme
   * `Ignore*` shapes are excluded (`--roi_exclude_classes`).
   * Annotation classes are added to the cell table (`roi_<Class>`, `roi_class`) and summarised in the QC report.
   * ROI masks are published in `<sample>/roi/` for downstream masking.
+* `--roi_tissue_detection` to run tissue detection inside each GeoJSON annotation (e.g. one per section of a multi-sample slide), keeping only the tissue within each shape.
+* `--roi_flip_y` to mirror GeoJSON annotations vertically, for annotations exported with a bottom-left origin.
 * Automatic tissue detection for samples without a GeoJSON, so background patches are skipped (`--tissue_detection`).
 * ROI outline drawn in green on the RGB segmentation overlay.
 * Optional GPU acceleration for Cellpose with `-profile gpu` (`--use_gpu`, one GPU per patch task).
