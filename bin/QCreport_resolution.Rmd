@@ -6,11 +6,15 @@ cluster_col <- paste0("PROT_snn_res.", resolution)
 seu$seurat_clusters <- seu[[cluster_col]]
 Idents(seu) <- "seurat_clusters"
 pal <- cluster_palette(levels(Idents(seu)))
+
+# Same clusters on the plotting subset (keeps all cluster levels so colours match)
+seu_plot$seurat_clusters <- factor(as.character(seu_plot[[cluster_col]][, 1]), levels = levels(Idents(seu)))
+Idents(seu_plot) <- "seurat_clusters"
 ```
 
 ```{r, fig.dim=c(10,10)}
-DimPlot(seu, reduction = umap_red, label = TRUE, cols = pal)
-ImageDimPlot(seu, fov = "myfov", size = 1, cols = pal) + scale_y_reverse()
+DimPlot(seu, reduction = umap_red, cells = plot_cells, label = TRUE, cols = pal)
+ImageDimPlot(seu, fov = "myfov", cells = plot_cells, size = 1, cols = pal) + scale_y_reverse()
 ```
 
 **Cluster sizes**
@@ -57,7 +61,7 @@ eff.fig.height <- ceiling(n_plot_markers / plots_per_row) * (10 / 3)
 
 ```{r, fig.width=eff.fig.width, fig.height=eff.fig.height}
 VlnPlot(
-  seu,
+  seu_plot,
   features = marker_cols,
   group.by = "seurat_clusters",
   pt.size = 0,

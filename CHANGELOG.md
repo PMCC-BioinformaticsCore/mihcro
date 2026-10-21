@@ -32,6 +32,7 @@ Major update to nfcore/microscopy. Added ROI specification, and patch-wise segme
 * Stitched/fused inputs are checked to be a single TIFF during samplesheet validation.
 * `RESOLVE_PATCHES` requests 1 CPU / 16 GB instead of `process_medium`.
 * QC report reorganised and polished.
+* Faster QC report on large samples: per-cell calculations are vectorised, the cell table is read with `data.table::fread`, and plots use a random sample of 100,000 cells (tables, clustering and the Seurat object still use all cells). The report task requests 2 CPUs instead of 6.
 
 ### `Fixed`
 

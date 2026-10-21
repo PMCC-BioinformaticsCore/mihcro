@@ -21,7 +21,17 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, timing = TRUE)
+
+# Log each chunk's run time to stderr (the task's .command.err), to see where report time goes
+knitr::knit_hooks$set(timing = function(before, options) {
+  if (before) {
+    .chunk_start <<- Sys.time()
+  } else {
+    message(sprintf("[report timing] %-28s %7.1f s", options$label,
+                    as.numeric(difftime(Sys.time(), .chunk_start, units = "secs"))))
+  }
+})
 
 options(future.globals.maxSize = Inf)
 
@@ -58,8 +68,12 @@ area_unit <- if (is.na(mpp)) "px²" else "µm²"
 # Patches segmented
 patches <- if (has_file(params$patches)) read.csv(params$patches) else NULL
 
-# Cell-by-feature table
-cells <- read.csv(params$cellbyfeature, na.strings = c("", "inf"))
+# Cell-by-feature table (data.table::fread is much faster than read.csv on large tables)
+cells <- if (requireNamespace("data.table", quietly = TRUE)) {
+  data.table::fread(params$cellbyfeature, na.strings = c("", "inf"), data.table = FALSE)
+} else {
+  read.csv(params$cellbyfeature, na.strings = c("", "inf"))
+}
 colnames(cells) <- colnames(cells) %>% make.names() %>% trimws()
 n_cells_raw <- nrow(cells)
 cells <- cells %>% drop_na()
@@ -71,22 +85,49 @@ missing_markers <- setdiff(markerfile$marker_name, colnames(cells))
 eff_markers <- intersect(markerfile$marker_name, colnames(cells))
 num.markers <- length(eff_markers)
 
-marker_long <- cells %>%
-  select(CellID, all_of(eff_markers)) %>%
-  pivot_longer(cols = -CellID, names_to = "Marker", values_to = "Value") %>%
-  mutate(Marker = factor(Marker, levels = eff_markers))
+# Marker intensities as a cells x markers matrix; per-cell operations are vectorised over its rows
+mat <- as.matrix(cells[, eff_markers, drop = FALSE])
 
 # Cells with implausible intensities (overflowed quantification) are removed
-flagged <- marker_long %>% group_by(CellID) %>% filter(sum(Value) > 1e+30) %>% pull(CellID) %>% unique()
-if (length(flagged) > 0) {
-  cells <- cells %>% filter(!CellID %in% flagged)
-  marker_long <- marker_long %>% filter(!CellID %in% flagged)
+is_flagged <- rowSums(mat) > 1e+30
+flagged <- cells$CellID[is_flagged]
+if (any(is_flagged)) {
+  cells <- cells[!is_flagged, , drop = FALSE]
+  rownames(cells) <- NULL
+  mat <- mat[!is_flagged, , drop = FALSE]
 }
 
-marker_clr <- marker_long %>%
-  group_by(CellID) %>%
-  mutate(Value_CLR = log(Value + 1) - mean(log(Value + 1), na.rm = TRUE)) %>%
-  ungroup()
+# CLR per cell: log(x + 1) minus the cell's mean log(x + 1)
+log_mat <- log1p(mat)
+clr <- log_mat - rowMeans(log_mat, na.rm = TRUE)
+rm(log_mat)
+
+# Plots use a random sample of cells on large samples; tables and clustering use all cells
+max_plot_cells <- 100000
+set.seed(1)
+plot_rows <- if (nrow(cells) > max_plot_cells) sort(sample(nrow(cells), max_plot_cells)) else seq_len(nrow(cells))
+plot_ids <- cells$CellID[plot_rows]
+plots_sampled <- length(plot_rows) < nrow(cells)
+
+to_long <- function(m, value_name) {
+  data.frame(
+    CellID = rep(cells$CellID[plot_rows], times = ncol(m)),
+    Marker = factor(rep(colnames(m), each = length(plot_rows)), levels = eff_markers),
+    value = as.vector(m[plot_rows, , drop = FALSE])
+  ) %>% rename(!!value_name := value)
+}
+marker_long <- to_long(mat, "Value")
+marker_clr <- to_long(clr, "Value_CLR")
+
+# Summary statistics per marker over all cells
+marker_stats <- function(m) {
+  data.frame(
+    Marker = factor(colnames(m), levels = eff_markers),
+    Mean = colMeans(m), Median = apply(m, 2, median), SD = apply(m, 2, sd),
+    Min = apply(m, 2, min), Max = apply(m, 2, max),
+    row.names = NULL
+  )
+}
 
 cells$Area_scaled <- cells$Area * area_factor
 
@@ -291,6 +332,16 @@ print(
 
 # Morphology {.tabset}
 
+```{r, results='asis'}
+if (plots_sampled) {
+  cat(sprintf("Plots show a random sample of %s of the %s cells; tables use all cells.
+
+",
+              format(length(plot_rows), big.mark = ","), format(nrow(cells), big.mark = ",")))
+}
+plot_cells_df <- cells[plot_rows, , drop = FALSE]
+```
+
 ## Cell area {-}
 
 ```{r}
@@ -307,12 +358,12 @@ cells %>%
 ```
 
 ```{r}
-ggplot(cells, aes(x = Area_scaled)) +
+ggplot(plot_cells_df, aes(x = Area_scaled)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
   labs(title = "Area distribution", x = sprintf("Area (%s)", area_unit), y = "Density")
 
-ggplot(cells, aes(x = Area_scaled)) +
+ggplot(plot_cells_df, aes(x = Area_scaled)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
   scale_x_log10() +
@@ -322,7 +373,7 @@ ggplot(cells, aes(x = Area_scaled)) +
 ## Eccentricity {-}
 
 ```{r}
-ggplot(cells, aes(x = Eccentricity)) +
+ggplot(plot_cells_df, aes(x = Eccentricity)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
   labs(title = "Eccentricity distribution", x = "Eccentricity", y = "Density")
@@ -331,7 +382,7 @@ ggplot(cells, aes(x = Eccentricity)) +
 ## Solidity {-}
 
 ```{r}
-ggplot(cells, aes(x = Solidity)) +
+ggplot(plot_cells_df, aes(x = Solidity)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
   labs(title = "Solidity distribution", x = "Solidity", y = "Density")
@@ -340,7 +391,7 @@ ggplot(cells, aes(x = Solidity)) +
 ## Extent {-}
 
 ```{r}
-ggplot(cells, aes(x = Extent)) +
+ggplot(plot_cells_df, aes(x = Extent)) +
   geom_density(alpha = 0.5) +
   theme_minimal() +
   labs(title = "Extent distribution", x = "Extent", y = "Density")
@@ -351,19 +402,13 @@ ggplot(cells, aes(x = Extent)) +
 ## Raw {-}
 
 ```{r}
-marker_long %>%
-  group_by(Marker) %>%
-  summarise(Mean = mean(Value), Median = median(Value), SD = sd(Value), Min = min(Value), Max = max(Value)) %>%
-  fmt_table("Channel intensity (raw)")
+marker_stats(mat) %>% fmt_table("Channel intensity (raw)")
 ```
 
 ## CLR {-}
 
 ```{r}
-marker_clr %>%
-  group_by(Marker) %>%
-  summarise(Mean = mean(Value_CLR), Median = median(Value_CLR), SD = sd(Value_CLR), Min = min(Value_CLR), Max = max(Value_CLR)) %>%
-  fmt_table("Channel intensity (CLR-transformed)")
+marker_stats(clr) %>% fmt_table("Channel intensity (CLR-transformed)")
 ```
 
 # Marker intensity distributions {.tabset}
@@ -445,17 +490,12 @@ ggcorrplot(corr_matrix, hc.order = FALSE, type = "lower", lab = TRUE) +
 eff.fig.width <- 7
 eff.fig.height <- (5 / 3) * ceiling(num.markers / 4)
 
-# Downsample for plotting only; the full data is used everywhere else
-qq_cells <- unique(marker_long$CellID)
-if (length(qq_cells) > 100000) qq_cells <- sample(qq_cells, size = 100000, replace = FALSE)
-qq_long <- marker_long %>% filter(CellID %in% qq_cells)
-qq_clr <- marker_clr %>% filter(CellID %in% qq_cells)
 ```
 
 ## Raw {-}
 
 ```{r, fig.width=eff.fig.width, fig.height=eff.fig.height}
-ggplot(qq_long, aes(sample = Value, color = Marker)) +
+ggplot(marker_long, aes(sample = Value, color = Marker)) +
   stat_qq() +
   stat_qq_line() +
   theme_minimal() +
@@ -467,7 +507,7 @@ ggplot(qq_long, aes(sample = Value, color = Marker)) +
 ## CLR {-}
 
 ```{r, fig.width=eff.fig.width, fig.height=eff.fig.height}
-ggplot(qq_clr, aes(sample = Value_CLR, color = Marker)) +
+ggplot(marker_clr, aes(sample = Value_CLR, color = Marker)) +
   stat_qq() +
   stat_qq_line() +
   theme_minimal() +
@@ -539,13 +579,20 @@ centroids <- seu[[]] %>%
 seu[["myfov"]] <- CreateFOV(coords = centroids, type = "centroids", key = "fov", assay = "PROT")
 
 # Saved for downstream analysis
-saveRDS(seu, file = paste0(samplename, "_seurat.rds"))
+# Fast (level 1) gzip: about half the time of saveRDS's default level 6, for a ~4% larger file
+rds_con <- gzfile(paste0(samplename, "_seurat.rds"), "wb", compression = 1)
+saveRDS(seu, rds_con)
+close(rds_con)
+
+# Cells drawn in the Seurat plots (the same sample as above); a subset object for the violin plots
+plot_cells <- cells$CellID[plot_rows]  # cells$CellID was made unique above, in the same row order as seu
+seu_plot <- if (plots_sampled) subset(seu, cells = plot_cells) else seu
 ```
 
 # Spatial marker expression
 
 ```{r, fig.dim=c(10,10)}
-ImageFeaturePlot(seu, features = marker_cols, combine = TRUE) &
+ImageFeaturePlot(seu, features = marker_cols, cells = plot_cells, combine = TRUE) &
   scale_y_reverse() &
   theme(plot.background = element_rect(fill = "black"))
 ```

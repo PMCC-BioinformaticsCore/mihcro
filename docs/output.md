@@ -124,6 +124,7 @@ This features, from left to right: the raw DAPI channel, the processed DAPI chan
 In brief, the QC report outputs the following:
 
 - An overview at the top, with a sample summary (cells analysed, segmentation method, pixel and image size, markers used, region of interest and patches segmented), the workflow parameters used for the run, and notices for markers not found or cells removed.
+- For samples with more than 100,000 cells, plots are drawn from a random sample of 100,000 cells to keep the report fast; all tables, clustering and the saved Seurat object use every cell.
 - If the sample has a region of interest, a *Regions of interest* section with cell counts and density per annotation class, a spatial map and marker intensity by region.
 - Tabular QC and statistical overviews for:
   - Segmentation outputs (e.g. cell area, eccentricity, etc.)
