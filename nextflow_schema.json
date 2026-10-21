@@ -32,6 +32,11 @@
                     "description": "Path to comma-separated file containing information about the markers in the experiment.",
                     "help_text": ""
                 },
+                "stop_after_ome": {
+                   "type": "boolean",
+                    "default": false,
+                    "description": "Stop after producing the OME-TIFF input images."
+                }
                 "downscale_mode": {
                     "type": "string",
                     "default": "1um",
