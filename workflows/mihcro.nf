@@ -66,14 +66,16 @@ workflow MIHCRO {
         .mix(INDICA_TIFF_TO_OME.out.image)
         .mix(ch_branched.stitched)
 
+    ch_versions = Channel.empty()
+        .mix(QUPATH_STITCH.out.versions)
+        .mix(INDICA_TIFF_TO_OME.out.versions)
+
     if (!params.stop_after_ome) {
 
         PREPROCESS_IMAGE ( ch_raw_images, ch_markers )
 
-        ch_versions = Channel.empty()
-            .mix(QUPATH_STITCH.out.versions)
-            .mix(INDICA_TIFF_TO_OME.out.versions)
-            .mix(PREPROCESS_IMAGE.out.versions)
+
+        ch_versions = ch_versions.mix(PREPROCESS_IMAGE.out.versions)
 
         ch_processed_images = PREPROCESS_IMAGE.out.image
 
